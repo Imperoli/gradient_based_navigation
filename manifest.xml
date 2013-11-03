@@ -1,0 +1,20 @@
+<package>
+  <description brief="emergency_stop">
+
+     emergency_stop
+
+  </description>
+  <author>Marco</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/emergency_stop</url>
+  <depend package="roscpp"/>
+  <depend package="rospy"/>
+  <depend package="std_msgs"/>
+  <depend package="tf"/>
+  <depend package="actionlib"/>
+  <depend package="actionlib_msgs"/>
+
+</package>
+
+
