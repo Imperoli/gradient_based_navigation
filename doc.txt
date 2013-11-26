@@ -45,3 +45,8 @@ Each Polygon message is essentially a vector of 3D points
 - "odom_frame": odom frame id.
 - "GUI": boolean parameter. If true GUI is shown.
 
+
+================================================
+
+The "sendAttractivePoints" node is a simple node that publishes a set of predefined attractive points on the "attractive_points" topic.
+
