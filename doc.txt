@@ -1,0 +1,47 @@
+
+ROS package for robot navigation.
+The input of "emergencyStop" node is the desired velocity command, the output is the velocity computed according to the data coming from a laser sensor acquired by the robot.
+It can be used as obstacle avoidance system.
+
+============================================
+
+The "emergencyStop_with_attraction" node is the extension of the "emergencyStop" that takes into account also attractive force fields.
+The attractive force field is computed from sets of attractive points.
+Each attractive point is defined with its 'x' and 'y' global coordinates, and the intensity of attraction.
+The set of attractive points is passed to the node through the "attractive_points" topic of type "geometry_msgs/Polygon".
+Each Polygon message is essentially a vector of 3D points
+
+
+"emergencyStop_with_attraction" input:
+- odom frame and laser pose frame;
+- desired velocity command;
+- acquired laser data;
+- set of attractive 3D points
+	- 'x' and 'y' coordinates represent the global coordinates of the attractive points;
+	- 'z' coordinate is taken to be the intensity of attraction.
+
+
+"emergencyStop_with_attraction" output:
+- resulting velocity command.
+
+
+"emergencyStop_with_attraction" subscribed topics:
+- "desired_cmd_vel": topic for desired velocity commands messages of type "geometry_msgs/Twist"
+- "base_scan": topic for laser data acquisition of type "sensor_msgs/LaserScan"
+- "attractive_points": topic for attractive points acquisition of type "geometry_msgs/Polygon"
+
+
+"emergencyStop_with_attraction" published topics:
+- "cmd_vel": topic for resulting velocity commands messages of type "geometry_msgs/Twist"
+
+
+"emergencyStop_with_attraction" rosparams:
+- "attractiveDistanceThreshold_m": if the distance (in meters) between the robot and an attractive point is less than this threshold, then the attraction is zero.
+- "attractiveDistanceInfluence_m": this parameter represents the range of influence (in meters) of the attractive points.
+- "obstaclesDistanceInfluence_m": this parameter represents the range of influence (in meters) of the repulsive obstacles computed from the laser data.
+- "force_scale": scaling factor for the linear attractive/repulsive force.
+- "momentum_scale": scaling factor for the attractive/repulsive momentum.
+- "target_frame": laser frame id.
+- "odom_frame": odom frame id.
+- "GUI": boolean parameter. If true GUI is shown.
+
