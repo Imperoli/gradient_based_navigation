@@ -60,12 +60,12 @@ void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
 int main(int argc, char **argv)
 {
 
-  	ros::init(argc, argv, "joystickPS3");
+  	ros::init(argc, argv, "joystick_control");
 
 
   	ros::NodeHandle n;
 
-	pub = n.advertise<geometry_msgs::Twist>("ps3joy_cmd_vel", 1);
+	pub = n.advertise<geometry_msgs::Twist>("joy_cmd_vel", 1);
 	
 	ros::Subscriber joy_sub = n.subscribe<sensor_msgs::Joy>("/joy", 1, joyCallback);
 	//ros::spin();
