@@ -77,6 +77,8 @@ float intensity=0;
 
 bool laser_ready=false;
 
+ros::NodeHandle *private_nh_ptr;
+
 
 void parseCmdLine(int argc, char** argv){
 	float sizer=80;
@@ -94,31 +96,36 @@ void parseCmdLine(int argc, char** argv){
 
 float getattractiveDistanceThreshold(){
 	double dist_thresh;
-	ros::param::get("attractiveDistanceThreshold_m",dist_thresh);
+	private_nh_ptr->getParam("attractiveDistanceThreshold_m",dist_thresh);
+	//ros::param::get("attractiveDistanceThreshold_m",dist_thresh);
 	return dist_thresh;
 }
 
 float getNumPixelSaturazioneattrazione(){
 	double dist_sat;
-	ros::param::get("attractiveDistanceInfluence_m",dist_sat);
+	private_nh_ptr->getParam("attractiveDistanceInfluence_m",dist_sat);
+	//ros::param::get("attractiveDistanceInfluence_m",dist_sat);
 	return dist_sat/resolution;
 }
 
 float getNumPixelSaturazione(){
 	double dist_sat;
-	ros::param::get("obstaclesDistanceInfluence_m",dist_sat);
+	private_nh_ptr->getParam("obstaclesDistanceInfluence_m",dist_sat);
+	//ros::param::get("obstaclesDistanceInfluence_m",dist_sat);
 	return dist_sat/resolution;
 }
 
 float getRepulsiveForceScale(){
 	double scale;
-	ros::param::get("force_scale",scale);
+	private_nh_ptr->getParam("force_scale",scale);
+	//ros::param::get("force_scale",scale);
 	return scale/(pixel_robot/2);
 }
 
 float getRepulsiveMomentumScale(){
 	double scale;
-	ros::param::get("momentum_scale",scale);
+	private_nh_ptr->getParam("momentum_scale",scale);
+	//ros::param::get("momentum_scale",scale);
 	return scale/(pixel_robot/2);
 }
 
@@ -366,23 +373,27 @@ void costruisciImmagineAssi(cv::Mat& imm, float joyspeed, float joyangular){
 void onTrackbarSaturazioneattrazione( int,void*){
 	distanza_saturazione_attr=distanza_saturazione_attr_cm/100.f;
 	n_pixel_sat_attr=(distanza_saturazione_attr)/resolution;
-	ros::param::set("attractiveDistanceInfluence_m",distanza_saturazione_attr);	
+	private_nh_ptr->setParam("attractiveDistanceInfluence_m",distanza_saturazione_attr);
+	//ros::param::set("attractiveDistanceInfluence_m",distanza_saturazione_attr);	
 }
 
 void onTrackbarSaturazione( int,void*){
 	distanza_saturazione=distanza_saturazione_cm/100.f;
 	n_pixel_sat=(distanza_saturazione)/resolution;
-	ros::param::set("obstaclesDistanceInfluence_m",distanza_saturazione);	
+	private_nh_ptr->setParam("obstaclesDistanceInfluence_m",distanza_saturazione);	
+	//ros::param::set("obstaclesDistanceInfluence_m",distanza_saturazione);	
 }
 
 void onTrackbarForceScaling( int, void* ){
 	force_scale=(force_scale_tb/1000.f)/(pixel_robot/2);
-	ros::param::set("force_scale",(float)force_scale_tb/1000.f);
+	private_nh_ptr->setParam("force_scale",(float)force_scale_tb/1000.f);
+	//ros::param::set("force_scale",(float)force_scale_tb/1000.f);
 }
 
 void onTrackbarMomentumScaling( int, void* ){
 	momentum_scale=(momentum_scale_tb/1000.f)/(pixel_robot/2);
-	ros::param::set("momentum_scale",(float)momentum_scale_tb/1000.f);
+	private_nh_ptr->setParam("momentum_scale",(float)momentum_scale_tb/1000.f);
+	//ros::param::set("momentum_scale",(float)momentum_scale_tb/1000.f);
 }
 
 
@@ -449,6 +460,8 @@ int main(int argc, char **argv)
 	parseCmdLine(argc, argv);
 
   	ros::NodeHandle n;
+	ros::NodeHandle private_nh("~");
+	private_nh_ptr = &private_nh;
 
 	ros::Publisher pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1);
 	
@@ -458,28 +471,34 @@ int main(int argc, char **argv)
 
 	ros::Subscriber sub4 = n.subscribe("attractive_points", 1, callbackattractivePoints);
 
-	n.setParam("attractiveDistanceThreshold_m",attr_dist_thresh);
-	n.setParam("attractiveDistanceInfluence_m",.5f);
-	n.setParam("obstaclesDistanceInfluence_m",.5f);
-	n.setParam("force_scale",.4f);
-	n.setParam("momentum_scale",.1f);
-	n.setParam("target_frame","/base_laser_link");
-	n.setParam("odom_frame","/odom");
+	if (!private_nh_ptr->hasParam("attractiveDistanceThreshold_m"))
+	  private_nh_ptr->setParam("attractiveDistanceThreshold_m",attr_dist_thresh);
+	if (!private_nh_ptr->hasParam("attractiveDistanceInfluence_m"))
+	  private_nh_ptr->setParam("attractiveDistanceInfluence_m",0.5f);
+	if (!private_nh_ptr->hasParam("obstaclesDistanceInfluence_m"))
+	  private_nh_ptr->setParam("obstaclesDistanceInfluence_m",1.0f);
+	if (!private_nh_ptr->hasParam("force_scale"))
+	  private_nh_ptr->setParam("force_scale",.4f);
+	if (!private_nh_ptr->hasParam("momentum_scale"))
+	  private_nh_ptr->setParam("momentum_scale",.1f);
 
-    // GUI parametro ROS
-	n.param("GUI", GUI, false);
 
-	cv::namedWindow("GUI", 1);
-    // parametri ROS - letti nel ciclo
+	// GUI parameter
+	private_nh.param("GUI", GUI, false);
+
+	// parametri ROS - letti nel ciclo
 	double par;
-	n.getParam("attractiveDistanceInfluence_m",par);
+	private_nh_ptr->getParam("attractiveDistanceInfluence_m",par);
 	distanza_saturazione_attr_cm=(int)(par*100);
-	n.getParam("obstaclesDistanceInfluence_m",par);
+	private_nh_ptr->getParam("obstaclesDistanceInfluence_m",par);
 	distanza_saturazione_cm=(int)(par*100);
-	n.getParam("force_scale",par);
+	private_nh_ptr->getParam("force_scale",par);
 	force_scale_tb=(int)(par*1000);
-	n.getParam("momentum_scale",par);
+	private_nh_ptr->getParam("momentum_scale",par);
 	momentum_scale_tb=(int)(par*1000);
+	
+	// OpenCV stuff
+	cv::namedWindow("GUI", 1);
 	cv::createTrackbar("attractive distance influence (cm)", "GUI", &distanza_saturazione_attr_cm, 200, onTrackbarSaturazioneattrazione, &n);
 	cv::createTrackbar("Obstacles distance influence (cm)", "GUI", &distanza_saturazione_cm, 200, onTrackbarSaturazione, &n);
 	cv::createTrackbar("Force Scale", "GUI", &force_scale_tb, 2000, onTrackbarForceScaling, 0);
@@ -498,10 +517,13 @@ int main(int argc, char **argv)
 	cv::Vec3f forza;
 	cv::Vec3f momento;
 
-  while (!laser_ready) {
-    loop_rate.sleep();
-  }
-
+	ROS_INFO("gradient_based_navigation: waiting for laser scan...");
+	while (!laser_ready) {
+	  loop_rate.sleep();
+	}
+	ROS_INFO("gradient_based_navigation: laser scan OK");
+	
+	
   double current_linear_vel=0;
   double target_linear_vel=0;
   double current_ang_vel=0;
@@ -509,20 +531,33 @@ int main(int argc, char **argv)
 
 	tf::Vector3 axis;
 	tf::TransformListener listener;
-	std::string target_frame;
+	std::string laser_frame;
 	std::string odom_frame;
 	tf::StampedTransform transform;
 
-	n.getParam("target_frame",target_frame);
-	n.getParam("odom_frame",odom_frame);
+	private_nh_ptr->param("laser_frame",laser_frame,std::string("base_laser_link"));
+	private_nh_ptr->param("odom_frame",odom_frame,std::string("odom"));
 
+	if (n.hasParam("tf_prefix")) {
+	    std::string tf_prefix;
+	    n.getParam("tf_prefix",tf_prefix);
+	    ROS_INFO_STREAM("Using tf_prefix: " << tf_prefix);
+	    laser_frame = "/" + tf_prefix + "/" + laser_frame;
+	    odom_frame = "/" + tf_prefix + "/" + odom_frame;
+	}
+	else
+	    std::cerr << "!!!No tf_prefix!!!" << std::endl;
+	    
+	ros::Duration delay(3.0); // seconds
+	delay.sleep();
+	
 	int iter=0;
 
 	while(n.ok()){
 
 		/*** read ros params every 100 iterations *******************/
 		if (iter==0){
-			ros::param::get("GUI", GUI);
+			private_nh_ptr->getParam("GUI", GUI);
 			n_pixel_sat_attr=getNumPixelSaturazioneattrazione();
 			n_pixel_sat=getNumPixelSaturazione();
 			force_scale=getRepulsiveForceScale();
@@ -532,15 +567,17 @@ int main(int argc, char **argv)
 		iter++;
 		if(iter>fps) iter=0;
 		/************************************************************/
-		
+	
+	
 		/*** tf *************************/
 		try{
-			listener.lookupTransform(target_frame, odom_frame, time_stamp,transform);
+			listener.lookupTransform(laser_frame, odom_frame, time_stamp,transform);
 			}
 		catch (tf::TransformException ex){
-		      //ROS_ERROR("%s",ex.what());
-			//std::cout<<source_frame<<std::endl;
-		    }
+		      ROS_ERROR("gradient_based_navigation: %s",ex.what());
+		      ROS_ERROR_STREAM("TF from " << laser_frame << "  to " << odom_frame);
+		      //std::cout<<source_frame<<std::endl;
+		}
 
 		robot_posx=transform.getOrigin().x();
 		robot_posy=transform.getOrigin().y();
