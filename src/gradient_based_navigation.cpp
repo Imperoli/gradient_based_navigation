@@ -545,8 +545,6 @@ int main(int argc, char **argv)
 	    laser_frame = "/" + tf_prefix + "/" + laser_frame;
 	    odom_frame = "/" + tf_prefix + "/" + odom_frame;
 	}
-	else
-	    std::cerr << "!!!No tf_prefix!!!" << std::endl;
 	    
 	ros::Duration delay(3.0); // seconds
 	delay.sleep();

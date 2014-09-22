@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.4.6)
 project(gradient_based_navigation)
 
 find_package(catkin REQUIRED COMPONENTS
-  actionlib
+  #actionlib
   geometry_msgs
   roscpp
   roslib
@@ -22,10 +22,10 @@ include_directories(
 add_executable(gradient_based_navigation src/gradient_based_navigation.cpp)
 add_executable(joystick_control src/joystick_control.cpp)
 add_executable(sendAttractivePoints src/sendAttractivePoints.cpp)
-add_executable(teleop_key src/teleop_key.cpp)
+add_executable(keyboard_control src/keyboard_control.cpp)
 
 target_link_libraries(gradient_based_navigation ${catkin_LIBRARIES} ${OpenCV_LIBS})
 target_link_libraries(joystick_control ${catkin_LIBRARIES} ${OpenCV_LIBS})
 target_link_libraries(sendAttractivePoints ${catkin_LIBRARIES} ${OpenCV_LIBS})
-target_link_libraries(teleop_key ${catkin_LIBRARIES} ${OpenCV_LIBS})
+target_link_libraries(keyboard_control ${catkin_LIBRARIES} ${OpenCV_LIBS})
 

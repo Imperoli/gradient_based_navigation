@@ -92,7 +92,7 @@ bool done;
 
 int main(int argc, char** argv)
 {
-    ros::init(argc,argv,"tbk", ros::init_options::AnonymousName | ros::init_options::NoSigintHandler);
+    ros::init(argc,argv,"keyboard_control", ros::init_options::AnonymousName | ros::init_options::NoSigintHandler);
     ErraticKeyboardTeleopNode tbk;
     
     boost::thread t = boost::thread(boost::bind(&ErraticKeyboardTeleopNode::keyboardLoop, &tbk));

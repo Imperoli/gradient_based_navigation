@@ -1,16 +1,24 @@
 <launch>
-		<arg name="world" value="$(find gradient_based_navigation)/world/willow-erratic3.world"/>
-		<node pkg="stage_ros" name="stageNode" type="stageros" args="$(arg world)" output="screen"/>
+	<arg name="use_joystick" default="false" />
+	
+	<arg name="world" value="$(find gradient_based_navigation)/world/hospital.world"/>
+	<node pkg="stage_ros" name="stageNode" type="stageros" args="$(arg world)" output="screen"/>
 
-		<!--node pkg="ps3joy" name="ps3joy" type="ps3joy.py" output="screen"/-->
-		<node pkg="joy" type="joy_node" name="joy" output="screen">
-			<param name="dev" type="string" value="/dev/input/js0" />
-			<param name="deadzone" value="0.12" />
-		</node>
-
-		<node pkg="gradient_based_navigation" name="joystickControl" type="joystick_control"/>
-		<node pkg="gradient_based_navigation" name="gradientBasedNavigation" type="gradient_based_navigation" args="80"  output="screen">
-			<rosparam param="/GUI">true</rosparam>
-		</node>
+	<group if="$(arg use_joystick)">
+	    <node pkg="joy" type="joy_node" name="joy" output="screen">
+		<param name="dev" type="string" value="/dev/input/js0" />
+		<param name="deadzone" value="0.12" />
+	    </node>
+	    <node pkg="gradient_based_navigation" name="joystickControl" type="joystick_control" output="screen" />
+	</group>
+	<group unless="$(arg use_joystick)">
+	    <node pkg="gradient_based_navigation" name="keyboardControl" type="teleop_key" output="screen" />
+	</group>
+	
+	<node pkg="gradient_based_navigation" name="gradientBasedNavigation" type="gradient_based_navigation" args="80"  output="screen">
+		<param name="GUI" value="true" />
+		<param name="attractiveDistanceInfluence_m" value="0.5" />
+		<param name="obstaclesDistanceInfluence_m" value="1.0" />
+	</node>
 		
 </launch>

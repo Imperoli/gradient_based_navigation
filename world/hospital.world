@@ -6,12 +6,12 @@ define block model
 
 define topurg ranger
 (
-	sensor( 			
+  sensor( 			
     range [ 0.0  30.0 ]
-	fov 270.25
-   #samples 1081
-	#fov 360
-	samples 1081
+    fov 270.25
+    #samples 1081
+    #fov 360
+    samples 1081
   )
 
   # generic model properties
@@ -44,7 +44,6 @@ define floorplan model
   gui_outline 0
   gripper_return 0
   fiducial_return 0
-  laser_return 1
 )
 
 # set the resolution of the underlying raytrace model in meters
