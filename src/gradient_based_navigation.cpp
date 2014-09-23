@@ -536,7 +536,7 @@ int main(int argc, char **argv)
 	tf::StampedTransform transform;
 
 	private_nh_ptr->param("laser_frame",laser_frame,std::string("base_laser_link"));
-	private_nh_ptr->param("odom_frame",odom_frame,std::string("odom"));
+	private_nh_ptr->param("map_frame",odom_frame,std::string("map"));
 
 	if (n.hasParam("tf_prefix")) {
 	    std::string tf_prefix;
@@ -566,24 +566,25 @@ int main(int argc, char **argv)
 		if(iter>fps) iter=0;
 		/************************************************************/
 	
-	
-		/*** tf *************************/
-		try{
-			listener.lookupTransform(laser_frame, odom_frame, time_stamp,transform);
-			}
-		catch (tf::TransformException ex){
-		      ROS_ERROR("gradient_based_navigation: %s",ex.what());
-		      ROS_ERROR_STREAM("TF from " << laser_frame << "  to " << odom_frame);
-		      //std::cout<<source_frame<<std::endl;
+		if (attr_points.size()>0) {
+		  /*** tf *************************/
+		  try{
+			  listener.lookupTransform(laser_frame, odom_frame, time_stamp, transform);
+			  }
+		  catch (tf::TransformException ex){
+			ROS_ERROR("gradient_based_navigation: %s",ex.what());
+			ROS_ERROR_STREAM("TF from " << laser_frame << "  to " << odom_frame);
+			//std::cout<<source_frame<<std::endl;
+		  }
+
+		  robot_posx=transform.getOrigin().x();
+		  robot_posy=transform.getOrigin().y();
+		  robot_orient=transform.getRotation().getAngle();
+		  axis=transform.getRotation().getAxis();		
+		  robot_orient*=axis[2];
+		  /********************************/
 		}
-
-		robot_posx=transform.getOrigin().x();
-		robot_posy=transform.getOrigin().y();
-		robot_orient=transform.getRotation().getAngle();
-		axis=transform.getRotation().getAxis();		
-		robot_orient*=axis[2];
-		/********************************/
-
+		
 		/*** Building the force field ***/
 		costruisciScanImage();
 		costruisciDistanceImage();
