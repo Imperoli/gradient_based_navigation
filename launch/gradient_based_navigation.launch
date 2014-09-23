@@ -9,10 +9,10 @@
 		<param name="dev" type="string" value="/dev/input/js0" />
 		<param name="deadzone" value="0.12" />
 	    </node>
-	    <node pkg="gradient_based_navigation" name="joystickControl" type="joystick_control" output="screen" />
+	    <node pkg="gradient_based_navigation" name="joystick_control" type="joystick_control" output="screen" />
 	</group>
 	<group unless="$(arg use_joystick)">
-	    <node pkg="gradient_based_navigation" name="keyboardControl" type="teleop_key" output="screen" />
+	    <node pkg="gradient_based_navigation" name="keyboard_control" type="keyboard_control" output="screen" />
 	</group>
 	
 	<node pkg="gradient_based_navigation" name="gradientBasedNavigation" type="gradient_based_navigation" args="80"  output="screen">

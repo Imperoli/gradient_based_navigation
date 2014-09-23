@@ -49,10 +49,12 @@ ros::Publisher pub;
 
 void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
 {
-	vel.linear.x=msg->axes[PS3_AXIS_STICK_LEFT_UPWARDS]*.1;
-	if(msg->axes[PS3_AXIS_BUTTON_REAR_RIGHT_2]<-.05) vel.linear.x*=1-msg->axes[PS3_AXIS_BUTTON_REAR_RIGHT_2]*2;
+	vel.linear.x=msg->axes[PS3_AXIS_STICK_LEFT_UPWARDS]*1.0;
+	
+	//if(msg->axes[PS3_AXIS_BUTTON_REAR_RIGHT_2]<-.05) vel.linear.x*=1-msg->axes[PS3_AXIS_BUTTON_REAR_RIGHT_2]*2;
 	//std::cout<<msg->axes[PS3_AXIS_BUTTON_REAR_RIGHT_2]<<std::endl;
-	vel.angular.z=msg->axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS]*1.57;
+	
+	vel.angular.z=msg->axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS]*1.0;
 	pub.publish(vel);
 }
 
@@ -65,9 +67,9 @@ int main(int argc, char **argv)
 
   	ros::NodeHandle n;
 
-	pub = n.advertise<geometry_msgs::Twist>("joy_cmd_vel", 1);
+	pub = n.advertise<geometry_msgs::Twist>("desired_cmd_vel", 1);
 	
-	ros::Subscriber joy_sub = n.subscribe<sensor_msgs::Joy>("/joy", 1, joyCallback);
+	ros::Subscriber joy_sub = n.subscribe<sensor_msgs::Joy>("joy", 1, joyCallback);
 	//ros::spin();
 
 	int fps=100;
