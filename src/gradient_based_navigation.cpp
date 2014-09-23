@@ -532,18 +532,18 @@ int main(int argc, char **argv)
 	tf::Vector3 axis;
 	tf::TransformListener listener;
 	std::string laser_frame;
-	std::string odom_frame;
+	std::string map_frame;
 	tf::StampedTransform transform;
 
 	private_nh_ptr->param("laser_frame",laser_frame,std::string("base_laser_link"));
-	private_nh_ptr->param("map_frame",odom_frame,std::string("map"));
+	private_nh_ptr->param("map_frame",map_frame,std::string("map"));
 
 	if (n.hasParam("tf_prefix")) {
 	    std::string tf_prefix;
 	    n.getParam("tf_prefix",tf_prefix);
 	    ROS_INFO_STREAM("Using tf_prefix: " << tf_prefix);
 	    laser_frame = "/" + tf_prefix + "/" + laser_frame;
-	    odom_frame = "/" + tf_prefix + "/" + odom_frame;
+	    map_frame = "/" + tf_prefix + "/" + map_frame;
 	}
 	    
 	ros::Duration delay(3.0); // seconds
@@ -569,11 +569,11 @@ int main(int argc, char **argv)
 		if (attr_points.size()>0) {
 		  /*** tf *************************/
 		  try{
-			  listener.lookupTransform(laser_frame, odom_frame, time_stamp, transform);
+			  listener.lookupTransform(laser_frame, map_frame, time_stamp, transform);
 			  }
 		  catch (tf::TransformException ex){
 			ROS_ERROR("gradient_based_navigation: %s",ex.what());
-			ROS_ERROR_STREAM("TF from " << laser_frame << "  to " << odom_frame);
+			ROS_ERROR_STREAM("TF from " << laser_frame << "  to " << map_frame);
 			//std::cout<<source_frame<<std::endl;
 		  }
 
