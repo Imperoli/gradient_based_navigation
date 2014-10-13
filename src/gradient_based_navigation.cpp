@@ -155,13 +155,22 @@ void callbackSensore(const sensor_msgs::LaserScan::ConstPtr& msg)
 
 }
 
+
+ros::Time last_input_msg_time;
 /*** Callback for retrieving the joystick data ***/
 void callbackJoystickInput(const geometry_msgs::Twist::ConstPtr& msg)
 {	
 	joy_command_vel.linear=msg->linear;
-	joy_command_vel.angular=msg->angular;	
+	joy_command_vel.angular=msg->angular;
+	last_input_msg_time = ros::Time::now();
 }
 
+
+double delay_last_input() {
+    ros::Time current_time = ros::Time::now();
+    double delta_time = (current_time-last_input_msg_time).toSec();
+    return delta_time;
+}
 
 void costruisciattractiveField(){
 	float posx=0; float posy=0; int indx=0; int indy=0; float rx=0; float ry=0;
@@ -597,8 +606,12 @@ int main(int argc, char **argv)
 
 		/*** Compute the velocity command and publish it ********************************/
 		repulsive_linear_acc=0;
-		repulsive_angular_acc=0;				
-			
+		repulsive_angular_acc=0;
+		double timeFromLast = delay_last_input();
+// 		std::cout << "Time from last " << timeFromLast << std::endl;
+		if (timeFromLast>1.0) {
+		  joy_command_vel.linear.x=0;  joy_command_vel.angular.z=0;
+		}
 		command_vel=joy_command_vel;
        		target_linear_vel=command_vel.linear.x;
 		target_ang_vel=command_vel.angular.z;
