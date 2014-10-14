@@ -77,6 +77,12 @@ float intensity=0;
 
 bool laser_ready=false;
 
+// Timestamps for measuring acquisition delays
+ros::Time last_laser_msg_time;
+ros::Time last_input_msg_time;
+double MAX_MSG_DELAY=1.0; // (sec) Max delay from input or laser after which the robot is stopped.
+
+
 ros::NodeHandle *private_nh_ptr;
 
 
@@ -136,6 +142,20 @@ void callbackattractivePoints(const geometry_msgs::Polygon::ConstPtr& msg)
 	attr_points=msg->points;
 }
 
+// Check very close obstacles (<0.2 m) and stop the robot
+void very_close_obstacle_check() {
+    int cnt=0, dim=60, step=2;
+    for (int i=size/2-(dim/2)*step; i<size/2+(dim/2)*step; i+=step)
+      if (ranges[i]<0.2)
+	cnt++;
+    std::cout << cnt << std::endl;
+    double very_close_obstacle = (double)cnt/dim;
+    if (very_close_obstacle>0.5) {
+	ROS_WARN("Very close obstacle: stopping the robot");
+	ros::param::set("emergency_stop", 1);
+    }
+}
+
 
 /*** Callback for retrieving the laser scan ***/
 void callbackSensore(const sensor_msgs::LaserScan::ConstPtr& msg)
@@ -144,7 +164,6 @@ void callbackSensore(const sensor_msgs::LaserScan::ConstPtr& msg)
     laser_ready=true;
     std::cout << "GradientBasedNavigation:: laser data ready!!!" << std::endl;
   }
-
 	size=msg->ranges.size();
 	angle_min=msg->angle_min;
 	angle_incr=msg->angle_increment;
@@ -152,11 +171,11 @@ void callbackSensore(const sensor_msgs::LaserScan::ConstPtr& msg)
 	range_scan_min=msg->range_min;
 	range_scan_max=msg->range_max;
 	ranges=msg->ranges;
-
+	last_laser_msg_time = time_stamp; //ros::Time::now();
+	very_close_obstacle_check();
 }
 
 
-ros::Time last_input_msg_time;
 /*** Callback for retrieving the joystick data ***/
 void callbackJoystickInput(const geometry_msgs::Twist::ConstPtr& msg)
 {	
@@ -171,6 +190,13 @@ double delay_last_input() {
     double delta_time = (current_time-last_input_msg_time).toSec();
     return delta_time;
 }
+
+double delay_last_laser() {
+    ros::Time current_time = ros::Time::now();
+    double delta_time = (current_time-last_laser_msg_time).toSec();
+    return delta_time;
+}
+
 
 void costruisciattractiveField(){
 	float posx=0; float posy=0; int indx=0; int indy=0; float rx=0; float ry=0;
@@ -607,11 +633,23 @@ int main(int argc, char **argv)
 		/*** Compute the velocity command and publish it ********************************/
 		repulsive_linear_acc=0;
 		repulsive_angular_acc=0;
-		double timeFromLast = delay_last_input();
-// 		std::cout << "Time from last " << timeFromLast << std::endl;
-		if (timeFromLast>1.0) {
-		  joy_command_vel.linear.x=0;  joy_command_vel.angular.z=0;
+		
+		
+		// Check if input or laser messages are too old
+#if 0
+		// Does not work with joystick
+		if (delay_last_input()>MAX_MSG_DELAY) {
+		    if (delay_last_input()<4*MAX_MSG_DELAY)
+			ROS_WARN("Stopping the roobt: no input !!!");
+		    joy_command_vel.linear.x=0;  joy_command_vel.angular.z=0;
 		}
+#endif
+		if (delay_last_laser()>MAX_MSG_DELAY) {
+		    if (delay_last_laser()<4*MAX_MSG_DELAY)
+			ROS_WARN("Stopping the roobt: no laser!!!");
+		    joy_command_vel.linear.x=0;  joy_command_vel.angular.z=0;
+		}
+		
 		command_vel=joy_command_vel;
        		target_linear_vel=command_vel.linear.x;
 		target_ang_vel=command_vel.angular.z;

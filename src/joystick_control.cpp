@@ -72,12 +72,16 @@ void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
 	vel.angular.z=msg->axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS]*1.0;
 	pub.publish(vel);
 	
-	if(msg->buttons[LOGITECH_BUTTON_RB])
+	if(msg->buttons[LOGITECH_BUTTON_RB]) {
+	  ROS_WARN("!!!Emergency Stop!!! from Joystick control");
 	  ros::param::set("emergency_stop", 1);
-	else if(msg->buttons[LOGITECH_BUTTON_RT])
+	}
+	else if(msg->buttons[LOGITECH_BUTTON_RT]) {
+	  ROS_WARN("Emergency Stop RELEASE from Joystick control");
 	  ros::param::set("emergency_stop", 0);
+	}
 	
-	cout << "Received message: " << msg->header.stamp.toSec() << " n." << cnt++ << endl;;
+	//cout << "Received message: " << msg->header.stamp.toSec() << " n." << cnt++ << endl;;
 // 	cout << msg->axes[PS3_AXIS_BUTTON_REAR_RIGHT_2] << endl;
 }
 
