@@ -52,7 +52,7 @@ int scale = 100;
 int delta = 0;
 int ddepth = CV_16S;
 
-geometry_msgs::Twist joy_command_vel;
+geometry_msgs::Twist joy_command_vel, desired_cmd_vel;
 geometry_msgs::Twist command_vel;
 
 int distanza_saturazione_cm= 65; int distanza_saturazione_attr_cm= 65;
@@ -76,6 +76,7 @@ std::vector<geometry_msgs::Point32> attr_points;
 float intensity=0;
 
 bool laser_ready=false;
+bool joystick_override_active = false;
 
 // Timestamps for measuring acquisition delays
 ros::Time last_laser_msg_time;
@@ -148,7 +149,7 @@ void very_close_obstacle_check() {
     for (int i=size/2-(dim/2)*step; i<size/2+(dim/2)*step; i+=step)
       if (ranges[i]<0.2)
 	cnt++;
-    std::cout << cnt << std::endl;
+    //std::cout << "Closeness " << cnt << std::endl;
     double very_close_obstacle = (double)cnt/dim;
     if (very_close_obstacle>0.5) {
 	ROS_WARN("Very close obstacle: stopping the robot");
@@ -181,6 +182,15 @@ void callbackJoystickInput(const geometry_msgs::Twist::ConstPtr& msg)
 {	
 	joy_command_vel.linear=msg->linear;
 	joy_command_vel.angular=msg->angular;
+	//last_input_msg_time = ros::Time::now();
+	//std::cout << "Received joystick " << joy_command_vel.linear.x << std::endl;
+}
+
+/*** Callback for retrieving the high level controller output***/
+void callbackControllerInput(const geometry_msgs::Twist::ConstPtr& msg)
+{	
+	desired_cmd_vel.linear=msg->linear;
+	desired_cmd_vel.angular=msg->angular;
 	last_input_msg_time = ros::Time::now();
 }
 
@@ -500,7 +510,8 @@ int main(int argc, char **argv)
 
 	ros::Publisher pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1);
 	
-	ros::Subscriber sub3 = n.subscribe("desired_cmd_vel", 1, callbackJoystickInput);
+	ros::Subscriber sub3 = n.subscribe("joystick_cmd_vel", 1, callbackJoystickInput);
+	ros::Subscriber sub2 = n.subscribe("desired_cmd_vel", 1, callbackControllerInput);
 
 	ros::Subscriber sub = n.subscribe("base_scan", 1, callbackSensore);
 
@@ -587,7 +598,6 @@ int main(int argc, char **argv)
 	int iter=0;
 
 	while(n.ok()){
-
 		/*** read ros params every 100 iterations *******************/
 		if (iter==0){
 			private_nh_ptr->getParam("GUI", GUI);
@@ -643,15 +653,25 @@ int main(int argc, char **argv)
 			ROS_WARN("Stopping the roobt: no input !!!");
 		    joy_command_vel.linear.x=0;  joy_command_vel.angular.z=0;
 		}
-#endif
-		if (delay_last_laser()>MAX_MSG_DELAY) {
-		    if (delay_last_laser()<4*MAX_MSG_DELAY)
-			ROS_WARN("Stopping the roobt: no laser!!!");
-		    joy_command_vel.linear.x=0;  joy_command_vel.angular.z=0;
+#endif	
+		if (!joystick_override_active && delay_last_input()>MAX_MSG_DELAY) {
+				ROS_INFO("No controller input detected, switching to Joystick only control");
+				desired_cmd_vel.linear.x=0;  desired_cmd_vel.angular.z=0;	
+				joystick_override_active = true;
+				ros::param::set("use_only_joystick", 1);
 		}
-		
-		command_vel=joy_command_vel;
-       		target_linear_vel=command_vel.linear.x;
+		if (delay_last_laser()>MAX_MSG_DELAY) {
+		    if (delay_last_laser()<4*MAX_MSG_DELAY){
+				ROS_WARN("Stopping the robot: no laser!!!");
+				joy_command_vel.linear.x=0;  joy_command_vel.angular.z=0;
+		    }
+			
+		}
+		if(joystick_override_active)
+			command_vel=joy_command_vel;
+		else command_vel = desired_cmd_vel;
+
+		target_linear_vel=command_vel.linear.x;
 		target_ang_vel=command_vel.angular.z;
 		speed=command_vel.linear.x;
 
@@ -696,7 +716,6 @@ int main(int argc, char **argv)
 		if(target_linear_vel<-vel_lineare_max){
 			target_linear_vel=-vel_lineare_max;
 		}
-
     std::string esparam; int iesparam;
     if (ros::param::get("emergency_stop", esparam))
     {
@@ -710,6 +729,19 @@ int main(int argc, char **argv)
       if (iesparam==1) {
           target_linear_vel=0; target_ang_vel=0;
           //std::cout << "Emergency Stop param: " << iesparam << std::endl;
+      }
+    }
+    joystick_override_active = false;
+    if (ros::param::get("use_only_joystick", esparam))
+    {
+      if (esparam=="1") {
+          joystick_override_active = true;
+      }
+    }
+    else if (ros::param::get("use_only_joystick", iesparam))
+    {
+      if (iesparam==1) {
+          joystick_override_active = true;
       }
     }
 
