@@ -194,6 +194,9 @@ void callbackControllerInput(const geometry_msgs::Twist::ConstPtr& msg)
 	last_input_msg_time = ros::Time::now();
 }
 
+bool robot_was_moving(){
+	return !((desired_cmd_vel.linear.x==0) && (desired_cmd_vel.angular.z == 0));
+}
 
 double delay_last_input() {
     ros::Time current_time = ros::Time::now();
@@ -654,7 +657,7 @@ int main(int argc, char **argv)
 		    joy_command_vel.linear.x=0;  joy_command_vel.angular.z=0;
 		}
 #endif	
-		if (!joystick_override_active && delay_last_input()>MAX_MSG_DELAY) {
+		if (!joystick_override_active && robot_was_moving() && delay_last_input()>MAX_MSG_DELAY) {
 				ROS_INFO("No controller input detected, switching to Joystick only control");
 				desired_cmd_vel.linear.x=0;  desired_cmd_vel.angular.z=0;	
 				joystick_override_active = true;
