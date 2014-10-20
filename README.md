@@ -7,4 +7,4 @@ The input of the node is the desired velocity command, the output is the velocit
 
 It manages two types of input velocity commands and integrates some safety procedures explained below.
 
-<<<TO BE COMPLETED>>>
+TO BE COMPLETED
