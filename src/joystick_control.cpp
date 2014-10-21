@@ -73,12 +73,20 @@ void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
 	pub.publish(vel);
 	
 	if(msg->buttons[LOGITECH_BUTTON_RB]) {
-	  ROS_WARN("!!!Emergency Stop!!! from Joystick control");
+	  ROS_WARN("!!!Emergency Stop!!!");
 	  ros::param::set("emergency_stop", 1);
 	}
 	else if(msg->buttons[LOGITECH_BUTTON_RT]) {
-	  ROS_WARN("Emergency Stop RELEASE from Joystick control");
+	  ROS_WARN("Emergency Stop RELEASE");
 	  ros::param::set("emergency_stop", 0);
+	}
+	else if(msg->buttons[LOGITECH_BUTTON_LB]) {
+	  ROS_WARN("!!!Joystick Override Active!!! Other controllers will be ignored");
+	  ros::param::set("use_only_joystick", 1);
+	}
+	else if(msg->buttons[LOGITECH_BUTTON_LT]) {
+	  ROS_WARN("Joystick Override Disactivated");
+	  ros::param::set("use_only_joystick", 0);
 	}
 	
 	//cout << "Received message: " << msg->header.stamp.toSec() << " n." << cnt++ << endl;;
@@ -94,7 +102,7 @@ int main(int argc, char **argv)
 
   	ros::NodeHandle n;
 
-	pub = n.advertise<geometry_msgs::Twist>("desired_cmd_vel", 1);
+	pub = n.advertise<geometry_msgs::Twist>("joystick_cmd_vel", 1);
 	
 	ros::Subscriber joy_sub = n.subscribe<sensor_msgs::Joy>("joy", 1, joyCallback);
 	//ros::spin();
@@ -103,9 +111,8 @@ int main(int argc, char **argv)
 	ros::Rate loop_rate(fps);
 	ros::AsyncSpinner spinner(1); // n threads
 	spinner.start();
-	while(n.ok()){
-			
-// 		pub.publish(vel);
+	while(n.ok()){		
+ 		pub.publish(vel);
 		loop_rate.sleep();
 	}
 
