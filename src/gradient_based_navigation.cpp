@@ -150,7 +150,7 @@ const double CLOSE_DETECTION_RESET_TIME = 3.0;
 void very_close_obstacle_check() {
     int cnt=0, dim=60, step=2;
     for (int i=size/2-(dim/2)*step; i<size/2+(dim/2)*step; i+=step)
-      if (ranges[i]<0.5)
+      if (ranges[i]<0.2)
 		cnt++;
     //std::cout << "Closeness " << cnt << std::endl;
     double very_close_obstacle = (double)cnt/dim;
