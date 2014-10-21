@@ -143,17 +143,30 @@ void callbackattractivePoints(const geometry_msgs::Polygon::ConstPtr& msg)
 	attr_points=msg->points;
 }
 
+bool stoppedForCloseObject = false;
+ros::Time last_close_object_time;
+const double CLOSE_DETECTION_RESET_TIME = 3.0;
 // Check very close obstacles (<0.2 m) and stop the robot
 void very_close_obstacle_check() {
     int cnt=0, dim=60, step=2;
     for (int i=size/2-(dim/2)*step; i<size/2+(dim/2)*step; i+=step)
-      if (ranges[i]<0.2)
-	cnt++;
+      if (ranges[i]<0.5)
+		cnt++;
     //std::cout << "Closeness " << cnt << std::endl;
     double very_close_obstacle = (double)cnt/dim;
     if (very_close_obstacle>0.5) {
-	ROS_WARN("Very close obstacle: stopping the robot");
-	ros::param::set("emergency_stop", 1);
+		ROS_WARN("Very close obstacle: stopping the robot");
+		last_close_object_time = ros::Time::now();
+		ros::param::set("emergency_stop", 1);
+		stoppedForCloseObject = true;
+    }
+    else if(stoppedForCloseObject){
+		double delta_time = (ros::Time::now()-last_close_object_time).toSec();
+		if(delta_time>CLOSE_DETECTION_RESET_TIME){
+			ROS_INFO("%g seconds have passed without finding close obstacles, will re-enable movement",CLOSE_DETECTION_RESET_TIME);
+			stoppedForCloseObject=false;
+			ros::param::set("emergency_stop", 0);
+		}
     }
 }
 

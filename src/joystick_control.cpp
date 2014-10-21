@@ -73,11 +73,11 @@ void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
 	pub.publish(vel);
 	
 	if(msg->buttons[LOGITECH_BUTTON_RB]) {
-	  ROS_WARN("!!!Emergency Stop!!! from Joystick control");
+	  ROS_WARN("!!!Emergency Stop!!!");
 	  ros::param::set("emergency_stop", 1);
 	}
 	else if(msg->buttons[LOGITECH_BUTTON_RT]) {
-	  ROS_WARN("Emergency Stop RELEASE from Joystick control");
+	  ROS_WARN("Emergency Stop RELEASE");
 	  ros::param::set("emergency_stop", 0);
 	}
 	else if(msg->buttons[LOGITECH_BUTTON_LB]) {
