@@ -76,7 +76,7 @@ std::vector<geometry_msgs::Point32> attr_points;
 float intensity=0;
 
 bool laser_ready=false;
-bool joystick_override_active = false;
+bool joystick_override_active = true;
 
 // Timestamps for measuring acquisition delays
 ros::Time last_laser_msg_time;
@@ -199,12 +199,17 @@ void callbackJoystickInput(const geometry_msgs::Twist::ConstPtr& msg)
 	//std::cout << "Received joystick " << joy_command_vel.linear.x << std::endl;
 }
 
+bool received_any_input = false;
 /*** Callback for retrieving the high level controller output***/
 void callbackControllerInput(const geometry_msgs::Twist::ConstPtr& msg)
 {	
 	desired_cmd_vel.linear=msg->linear;
 	desired_cmd_vel.angular=msg->angular;
 	last_input_msg_time = ros::Time::now();
+	if(!received_any_input){ //this is verified only the first time it receives a message
+		ROS_INFO("Received first controller input - joystick is temporaly disabled");
+		received_any_input = true;
+	}
 }
 
 bool robot_was_moving(){
@@ -683,7 +688,7 @@ int main(int argc, char **argv)
 		    }
 			
 		}
-		if(joystick_override_active)
+		if(!received_any_input || joystick_override_active)
 			command_vel=joy_command_vel;
 		else command_vel = desired_cmd_vel;
 
