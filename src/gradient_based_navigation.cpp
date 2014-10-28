@@ -23,8 +23,8 @@ cv::Mat visual_joy1(h/2,w/2,CV_8U);
 cv::Mat visual_joy2(h/2,w/2,CV_8U);
 
 float resolution=.05;
-float vel_angolare_max=1.3;
-float vel_lineare_max=1.0;
+float vel_angolare_max=.75;
+float vel_lineare_max=.75;
 float range_scan_min=0.001;
 float range_scan_max=30;
 
@@ -663,8 +663,19 @@ int main(int argc, char **argv)
     }
 
 
-    current_linear_vel = target_linear_vel;
+    if (target_linear_vel > 0 && target_linear_vel - current_linear_vel > 0.005){
+		current_linear_vel = std::min((double)vel_lineare_max, (current_linear_vel+0.005));
+		std::cout << "target : " << target_linear_vel << " current : " << current_linear_vel << std::endl;
+	}
+	else
+    	current_linear_vel = target_linear_vel;
+
     current_ang_vel = target_ang_vel;
+
+   command_vel.linear.x = current_linear_vel;
+	command_vel.angular.z = current_ang_vel;
+	pub.publish(command_vel);
+	/********************************************************************************/
 
 		
 		if(GUI){
@@ -678,10 +689,6 @@ int main(int argc, char **argv)
 			/********************************************************************************/
 		}
 
-		command_vel.linear.x = current_linear_vel;
-   		command_vel.angular.z = current_ang_vel;
-		pub.publish(command_vel);
-		/********************************************************************************/
 
 		loop_rate.sleep();
 	}
