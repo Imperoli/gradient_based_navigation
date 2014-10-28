@@ -64,7 +64,7 @@ class ErraticKeyboardTeleopNode
     public:
         ErraticKeyboardTeleopNode()
         {
-           pub_ = n_.advertise<geometry_msgs::Twist>("desired_cmd_vel", 1);
+           pub_ = n_.advertise<geometry_msgs::Twist>("joystick_cmd_vel", 1);
 		//pub_ = n_.advertise<geometry_msgs::Twist>("mobile_base/commands/velocity", 1);
             
             ros::NodeHandle n_private("~");

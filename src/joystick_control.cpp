@@ -1,6 +1,8 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Joy.h>
 #include <geometry_msgs/Twist.h>
+#include <stdio.h>
+using namespace std;
 
 #define PS3_BUTTON_SELECT            0
 #define PS3_BUTTON_STICK_LEFT        1
@@ -41,11 +43,24 @@
 #define PS3_AXIS_ACCELEROMETER_UP        18
 #define PS3_AXIS_GYRO_YAW                19
 
+#define LOGITECH_BUTTON_BLUE 0
+#define LOGITECH_BUTTON_GREEN 1
+#define LOGITECH_BUTTON_RED 2
+#define LOGITECH_BUTTON_YELLOW 3
+#define LOGITECH_BUTTON_LB 4
+#define LOGITECH_BUTTON_RB 5
+#define LOGITECH_BUTTON_LT 6
+#define LOGITECH_BUTTON_RT 7
+#define LOGITECH_BUTTON_BACK 8
+#define LOGITECH_BUTTON_START 9
+
 
 
 sensor_msgs::Joy joy;
 geometry_msgs::Twist vel;
 ros::Publisher pub;
+
+long cnt = 0;
 
 void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
 {
@@ -56,6 +71,26 @@ void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
 	
 	vel.angular.z=msg->axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS]*1.0;
 	pub.publish(vel);
+	
+	if(msg->buttons[LOGITECH_BUTTON_RB]) {
+	  ROS_WARN("!!!Emergency Stop!!!");
+	  ros::param::set("emergency_stop", 1);
+	}
+	else if(msg->buttons[LOGITECH_BUTTON_RT]) {
+	  ROS_WARN("Emergency Stop RELEASE");
+	  ros::param::set("emergency_stop", 0);
+	}
+	else if(msg->buttons[LOGITECH_BUTTON_LB]) {
+	  ROS_WARN("!!!Joystick Override Active!!! Other controllers will be ignored");
+	  ros::param::set("use_only_joystick", 1);
+	}
+	else if(msg->buttons[LOGITECH_BUTTON_LT]) {
+	  ROS_WARN("Joystick Override Disactivated");
+	  ros::param::set("use_only_joystick", 0);
+	}
+	
+	//cout << "Received message: " << msg->header.stamp.toSec() << " n." << cnt++ << endl;;
+// 	cout << msg->axes[PS3_AXIS_BUTTON_REAR_RIGHT_2] << endl;
 }
 
 
@@ -67,7 +102,7 @@ int main(int argc, char **argv)
 
   	ros::NodeHandle n;
 
-	pub = n.advertise<geometry_msgs::Twist>("desired_cmd_vel", 1);
+	pub = n.advertise<geometry_msgs::Twist>("joystick_cmd_vel", 1);
 	
 	ros::Subscriber joy_sub = n.subscribe<sensor_msgs::Joy>("joy", 1, joyCallback);
 	//ros::spin();
@@ -76,9 +111,8 @@ int main(int argc, char **argv)
 	ros::Rate loop_rate(fps);
 	ros::AsyncSpinner spinner(1); // n threads
 	spinner.start();
-	while(n.ok()){
-			
-		pub.publish(vel);
+	while(n.ok()){		
+ 		pub.publish(vel);
 		loop_rate.sleep();
 	}
 

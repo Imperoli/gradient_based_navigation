@@ -52,7 +52,7 @@ int scale = 100;
 int delta = 0;
 int ddepth = CV_16S;
 
-geometry_msgs::Twist joy_command_vel;
+geometry_msgs::Twist joy_command_vel, desired_cmd_vel;
 geometry_msgs::Twist command_vel;
 
 int distanza_saturazione_cm= 65; int distanza_saturazione_attr_cm= 65;
@@ -76,6 +76,13 @@ std::vector<geometry_msgs::Point32> attr_points;
 float intensity=0;
 
 bool laser_ready=false;
+bool joystick_override_active = true;
+
+// Timestamps for measuring acquisition delays
+ros::Time last_laser_msg_time;
+ros::Time last_input_msg_time;
+double MAX_MSG_DELAY=1.0; // (sec) Max delay from input or laser after which the robot is stopped.
+
 
 ros::NodeHandle *private_nh_ptr;
 
@@ -136,6 +143,33 @@ void callbackattractivePoints(const geometry_msgs::Polygon::ConstPtr& msg)
 	attr_points=msg->points;
 }
 
+bool stoppedForCloseObject = false;
+ros::Time last_close_object_time;
+const double CLOSE_DETECTION_RESET_TIME = 3.0;
+// Check very close obstacles (<0.2 m) and stop the robot
+void very_close_obstacle_check() {
+    int cnt=0, dim=60, step=2;
+    for (int i=size/2-(dim/2)*step; i<size/2+(dim/2)*step; i+=step)
+      if (ranges[i]<0.2)
+		cnt++;
+    //std::cout << "Closeness " << cnt << std::endl;
+    double very_close_obstacle = (double)cnt/dim;
+    if (very_close_obstacle>0.5) {
+		ROS_WARN("Very close obstacle: stopping the robot");
+		last_close_object_time = ros::Time::now();
+		ros::param::set("emergency_stop", 1);
+		stoppedForCloseObject = true;
+    }
+    else if(stoppedForCloseObject){
+		double delta_time = (ros::Time::now()-last_close_object_time).toSec();
+		if(delta_time>CLOSE_DETECTION_RESET_TIME){
+			ROS_INFO("%g seconds have passed without finding close obstacles, will re-enable movement",CLOSE_DETECTION_RESET_TIME);
+			stoppedForCloseObject=false;
+			ros::param::set("emergency_stop", 0);
+		}
+    }
+}
+
 
 /*** Callback for retrieving the laser scan ***/
 void callbackSensore(const sensor_msgs::LaserScan::ConstPtr& msg)
@@ -144,7 +178,6 @@ void callbackSensore(const sensor_msgs::LaserScan::ConstPtr& msg)
     laser_ready=true;
     std::cout << "GradientBasedNavigation:: laser data ready!!!" << std::endl;
   }
-
 	size=msg->ranges.size();
 	angle_min=msg->angle_min;
 	angle_incr=msg->angle_increment;
@@ -152,14 +185,47 @@ void callbackSensore(const sensor_msgs::LaserScan::ConstPtr& msg)
 	range_scan_min=msg->range_min;
 	range_scan_max=msg->range_max;
 	ranges=msg->ranges;
-
+	last_laser_msg_time = time_stamp; //ros::Time::now();
+	very_close_obstacle_check();
 }
+
 
 /*** Callback for retrieving the joystick data ***/
 void callbackJoystickInput(const geometry_msgs::Twist::ConstPtr& msg)
 {	
 	joy_command_vel.linear=msg->linear;
-	joy_command_vel.angular=msg->angular;	
+	joy_command_vel.angular=msg->angular;
+	//last_input_msg_time = ros::Time::now();
+	//std::cout << "Received joystick " << joy_command_vel.linear.x << std::endl;
+}
+
+bool received_any_input = false;
+/*** Callback for retrieving the high level controller output***/
+void callbackControllerInput(const geometry_msgs::Twist::ConstPtr& msg)
+{	
+	desired_cmd_vel.linear=msg->linear;
+	desired_cmd_vel.angular=msg->angular;
+	last_input_msg_time = ros::Time::now();
+	if(!received_any_input){ //this is verified only the first time it receives a message
+		ROS_INFO("Received first controller input - joystick is temporaly disabled");
+		received_any_input = true;
+	}
+}
+
+bool robot_was_moving(){
+	return !((desired_cmd_vel.linear.x==0) && (desired_cmd_vel.angular.z == 0));
+}
+
+double delay_last_input() {
+    ros::Time current_time = ros::Time::now();
+    double delta_time = (current_time-last_input_msg_time).toSec();
+    return delta_time;
+}
+
+double delay_last_laser() {
+    ros::Time current_time = ros::Time::now();
+    double delta_time = (current_time-last_laser_msg_time).toSec();
+    return delta_time;
 }
 
 
@@ -465,7 +531,8 @@ int main(int argc, char **argv)
 
 	ros::Publisher pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1);
 	
-	ros::Subscriber sub3 = n.subscribe("desired_cmd_vel", 1, callbackJoystickInput);
+	ros::Subscriber sub3 = n.subscribe("joystick_cmd_vel", 1, callbackJoystickInput);
+	ros::Subscriber sub2 = n.subscribe("desired_cmd_vel", 1, callbackControllerInput);
 
 	ros::Subscriber sub = n.subscribe("base_scan", 1, callbackSensore);
 
@@ -552,7 +619,6 @@ int main(int argc, char **argv)
 	int iter=0;
 
 	while(n.ok()){
-
 		/*** read ros params every 100 iterations *******************/
 		if (iter==0){
 			private_nh_ptr->getParam("GUI", GUI);
@@ -597,10 +663,36 @@ int main(int argc, char **argv)
 
 		/*** Compute the velocity command and publish it ********************************/
 		repulsive_linear_acc=0;
-		repulsive_angular_acc=0;				
+		repulsive_angular_acc=0;
+		
+		
+		// Check if input or laser messages are too old
+#if 0
+		// Does not work with joystick
+		if (delay_last_input()>MAX_MSG_DELAY) {
+		    if (delay_last_input()<4*MAX_MSG_DELAY)
+			ROS_WARN("Stopping the roobt: no input !!!");
+		    joy_command_vel.linear.x=0;  joy_command_vel.angular.z=0;
+		}
+#endif	
+		if (!joystick_override_active && robot_was_moving() && delay_last_input()>MAX_MSG_DELAY) {
+				ROS_INFO("No controller input detected, switching to Joystick only control");
+				desired_cmd_vel.linear.x=0;  desired_cmd_vel.angular.z=0;	
+				joystick_override_active = true;
+				ros::param::set("use_only_joystick", 1);
+		}
+		if (delay_last_laser()>MAX_MSG_DELAY) {
+		    if (delay_last_laser()<4*MAX_MSG_DELAY){
+				ROS_WARN("Stopping the robot: no laser!!!");
+				joy_command_vel.linear.x=0;  joy_command_vel.angular.z=0;
+		    }
 			
-		command_vel=joy_command_vel;
-       		target_linear_vel=command_vel.linear.x;
+		}
+		if(!received_any_input || joystick_override_active)
+			command_vel=joy_command_vel;
+		else command_vel = desired_cmd_vel;
+
+		target_linear_vel=command_vel.linear.x;
 		target_ang_vel=command_vel.angular.z;
 		speed=command_vel.linear.x;
 
@@ -645,7 +737,6 @@ int main(int argc, char **argv)
 		if(target_linear_vel<-vel_lineare_max){
 			target_linear_vel=-vel_lineare_max;
 		}
-
     std::string esparam; int iesparam;
     if (ros::param::get("emergency_stop", esparam))
     {
@@ -659,6 +750,19 @@ int main(int argc, char **argv)
       if (iesparam==1) {
           target_linear_vel=0; target_ang_vel=0;
           //std::cout << "Emergency Stop param: " << iesparam << std::endl;
+      }
+    }
+    joystick_override_active = false;
+    if (ros::param::get("use_only_joystick", esparam))
+    {
+      if (esparam=="1") {
+          joystick_override_active = true;
+      }
+    }
+    else if (ros::param::get("use_only_joystick", iesparam))
+    {
+      if (iesparam==1) {
+          joystick_override_active = true;
       }
     }
 
