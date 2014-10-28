@@ -769,7 +769,7 @@ int main(int argc, char **argv)
 
     if (target_linear_vel > 0 && target_linear_vel - current_linear_vel > 0.005){
 		current_linear_vel = std::min((double)vel_lineare_max, (current_linear_vel+0.005));
-		std::cout << "target : " << target_linear_vel << " current : " << current_linear_vel << std::endl;
+		//std::cout << "target : " << target_linear_vel << " current : " << current_linear_vel << std::endl;
 	}
 	else
     	current_linear_vel = target_linear_vel;
