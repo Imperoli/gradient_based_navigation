@@ -61,16 +61,16 @@ geometry_msgs::Twist vel;
 ros::Publisher pub;
 
 long cnt = 0;
-double maxvel = 1.0;
+double max_vel_x, max_vel_theta;
 
 void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
 {
-	vel.linear.x=msg->axes[PS3_AXIS_STICK_LEFT_UPWARDS]*maxvel;
+    vel.linear.x=msg->axes[PS3_AXIS_STICK_LEFT_UPWARDS]*max_vel_x;
 	
 	//if(msg->axes[PS3_AXIS_BUTTON_REAR_RIGHT_2]<-.05) vel.linear.x*=1-msg->axes[PS3_AXIS_BUTTON_REAR_RIGHT_2]*2;
 	//std::cout<<msg->axes[PS3_AXIS_BUTTON_REAR_RIGHT_2]<<std::endl;
 	
-	vel.angular.z=msg->axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS]*maxvel;
+    vel.angular.z=msg->axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS]*max_vel_theta;
 	pub.publish(vel);
 	
 	if(msg->buttons[LOGITECH_BUTTON_RB]) {
@@ -101,8 +101,9 @@ int main(int argc, char **argv)
 
     ros::NodeHandle n, pn("~");
 
-    pn.param("maxvel", maxvel, 1.0);
-    
+    pn.param("max_vel_x", max_vel_x, 1.0);
+    pn.param("max_vel_x", max_vel_theta, 1.0);
+
     pub = n.advertise<geometry_msgs::Twist>("joystick_cmd_vel", 1);
     
     ros::Subscriber joy_sub = n.subscribe<sensor_msgs::Joy>("joy", 1, joyCallback);
@@ -119,7 +120,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-
-
-
-
