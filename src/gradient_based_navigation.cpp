@@ -82,7 +82,7 @@ bool joystick_override_active = true;
 // Timestamps for measuring acquisition delays
 ros::Time last_laser_msg_time;
 ros::Time last_input_msg_time;
-double MAX_MSG_DELAY=1.0; // (sec) Max delay from input or laser after which the robot is stopped.
+double MAX_MSG_DELAY=2.0; // (sec) Max delay from input or laser after which the robot is stopped.
 
 
 ros::NodeHandle *private_nh_ptr;
@@ -699,10 +699,10 @@ int main(int argc, char **argv)
 		}
 #endif	
 		if (!joystick_override_active && robot_was_moving() && delay_last_input()>MAX_MSG_DELAY) {
-				ROS_INFO("No controller input detected, switching to Joystick only control");
+                ROS_INFO("No controller input detected, stopping the robot.");
 				desired_cmd_vel.linear.x=0;  desired_cmd_vel.angular.z=0;	
-				joystick_override_active = true;
-				ros::param::set("use_only_joystick", 1);
+                //joystick_override_active = true;
+                //ros::param::set("use_only_joystick", 1);
 		}
 		if (delay_last_laser()>MAX_MSG_DELAY) {
 		    if (delay_last_laser()<4*MAX_MSG_DELAY){
@@ -760,21 +760,18 @@ int main(int argc, char **argv)
         if(target_linear_vel<-max_vel_x){
             target_linear_vel=-max_vel_x;
 		}
-    std::string esparam; int iesparam;
-    if (ros::param::get("emergency_stop", esparam))
-    {
-      if (esparam=="1") {
-          target_linear_vel=0; target_ang_vel=0;
-          //std::cout << "Emergency Stop param: " << esparam << std::endl;
-      }
-    }
-    else if (ros::param::get("emergency_stop", iesparam))
-    {
-      if (iesparam==1) {
-          target_linear_vel=0; target_ang_vel=0;
+
+        std::string esparam="0"; int iesparam=0;
+        ros::param::get("emergency_stop", esparam);
+        ros::param::get("emergency_stop", iesparam);
+
+        if ((esparam=="1") || (iesparam==1)) {
           //std::cout << "Emergency Stop param: " << iesparam << std::endl;
-      }
-    }
+          if (target_linear_vel < -0.3) target_linear_vel = -0.3; else target_linear_vel=0;
+          target_ang_vel=0;
+        }
+
+
     joystick_override_active = false;
     if (ros::param::get("use_only_joystick", esparam))
     {
@@ -792,9 +789,13 @@ int main(int argc, char **argv)
     double max_linear_acc = 0.1;
     if (target_linear_vel > 0 && target_linear_vel - current_linear_vel > max_linear_acc){
         current_linear_vel = std::min((double)max_vel_x, (current_linear_vel+max_linear_acc));
-		//std::cout << "target : " << target_linear_vel << " current : " << current_linear_vel << std::endl;
-	}
-	else
+        //std::cout << "target : " << target_linear_vel << " current : " << current_linear_vel << std::endl;
+    }
+    else if (target_linear_vel < 0 && target_linear_vel - current_linear_vel < -max_linear_acc){
+        current_linear_vel = std::max(-(double)max_vel_x, (current_linear_vel-max_linear_acc));
+        //std::cout << "target : " << target_linear_vel << " current : " << current_linear_vel << std::endl;
+    }
+    else
     	current_linear_vel = target_linear_vel;
 
     current_ang_vel = target_ang_vel;
