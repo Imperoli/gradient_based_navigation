@@ -568,11 +568,11 @@ int main(int argc, char **argv)
 	cv::namedWindow("GUI", 1);
 	cv::createTrackbar("attractive distance influence (cm)", "GUI", &distanza_saturazione_attr_cm, 200, onTrackbarSaturazioneattrazione, &n);
 	cv::createTrackbar("Obstacles distance influence (cm)", "GUI", &distanza_saturazione_cm, 200, onTrackbarSaturazione, &n);
-	cv::createTrackbar("Force Scale", "GUI", &force_scale_tb, 2000, onTrackbarForceScaling, 0);
-	cv::createTrackbar("Momentum Scale", "GUI", &momentum_scale_tb, 2000, onTrackbarMomentumScaling, 0);
+	cv::createTrackbar("Force Scale (x1000)", "GUI", &force_scale_tb, 2000, onTrackbarForceScaling, 0);
+	cv::createTrackbar("Momentum Scale (x1000)", "GUI", &momentum_scale_tb, 2000, onTrackbarMomentumScaling, 0);
 
     // parametro ROS
-	int fps=100;
+	int fps=40;
 	ros::Rate loop_rate(fps);
 	ros::AsyncSpinner spinner(8); // n threads
 	spinner.start();
