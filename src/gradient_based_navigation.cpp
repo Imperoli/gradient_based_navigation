@@ -22,11 +22,12 @@ cv::Mat dist_ridotta;
 cv::Mat visual_joy1(h/2,w/2,CV_8U);
 cv::Mat visual_joy2(h/2,w/2,CV_8U);
 
-float resolution=.05;
-float vel_angolare_max=.75;
-float vel_lineare_max=.75;
-float range_scan_min=0.001;
-float range_scan_max=30;
+double resolution=.05;
+double max_vel_x;
+double max_vel_theta;
+
+double range_scan_min=0.001;
+double range_scan_max=30;
 
 int size=0;
 float angle_min=0;
@@ -81,7 +82,7 @@ bool joystick_override_active = true;
 // Timestamps for measuring acquisition delays
 ros::Time last_laser_msg_time;
 ros::Time last_input_msg_time;
-double MAX_MSG_DELAY=1.0; // (sec) Max delay from input or laser after which the robot is stopped.
+double MAX_MSG_DELAY=2.0; // (sec) Max delay from input or laser after which the robot is stopped.
 
 
 ros::NodeHandle *private_nh_ptr;
@@ -104,7 +105,7 @@ void parseCmdLine(int argc, char** argv){
 float getattractiveDistanceThreshold(){
 	double dist_thresh;
 	private_nh_ptr->getParam("attractiveDistanceThreshold_m",dist_thresh);
-	//ros::param::get("attractiveDistanceThreshold_m",dist_thresh);
+    //ros::param::get("attractiveDistanceThreshold_m",dist_thresh);
 	return dist_thresh;
 }
 
@@ -408,30 +409,30 @@ void costruisciImmagineAssi(cv::Mat& imm, float joyspeed, float joyangular){
 	imm(cv::Range(imm.rows/2-5,imm.rows/2+5),cv::Range(imm.cols/2+10,imm.cols))=cv::Scalar(0);
 
 	if(joyspeed>0){
-		if (joyspeed>vel_lineare_max){
+        if (joyspeed>max_vel_x){
 			imm(cv::Range(0,imm.rows/2-10),cv::Range(imm.cols/2-5,imm.cols/2+5))=cv::Scalar(150);
 			return;
 		}
-		imm(cv::Range(-(lungh/vel_lineare_max)*joyspeed+lungh,imm.rows/2-11),cv::Range(imm.cols/2-4,imm.cols/2+4))=cv::Scalar(150);
+        imm(cv::Range(-(lungh/max_vel_x)*joyspeed+lungh,imm.rows/2-11),cv::Range(imm.cols/2-4,imm.cols/2+4))=cv::Scalar(150);
 	}else{
-		if (joyspeed<-vel_lineare_max){
+        if (joyspeed<-max_vel_x){
 			imm(cv::Range(imm.rows/2+10,imm.rows),cv::Range(imm.cols/2-5,imm.cols/2+5))=cv::Scalar(150);
 			return;
 		}
-		imm(cv::Range(imm.rows/2+11,-((imm.rows/2-11)/vel_lineare_max)*joyspeed+imm.rows/2+11),cv::Range(imm.cols/2-4,imm.cols/2+4))=cv::Scalar(150);
+        imm(cv::Range(imm.rows/2+11,-((imm.rows/2-11)/max_vel_x)*joyspeed+imm.rows/2+11),cv::Range(imm.cols/2-4,imm.cols/2+4))=cv::Scalar(150);
 	}
 	if(joyangular>0){
-		if (joyangular>vel_angolare_max){
+        if (joyangular>max_vel_theta){
 			imm(cv::Range(imm.rows/2-5,imm.rows/2+5),cv::Range(0,imm.cols/2-10))=cv::Scalar(150);
 			return;
 		}
-		imm(cv::Range(imm.rows/2-4,imm.rows/2+4),cv::Range(-(((imm.cols)/2-10)/vel_angolare_max)*joyangular+imm.cols/2-10,imm.cols/2-10))=cv::Scalar(150);
+        imm(cv::Range(imm.rows/2-4,imm.rows/2+4),cv::Range(-(((imm.cols)/2-10)/max_vel_theta)*joyangular+imm.cols/2-10,imm.cols/2-10))=cv::Scalar(150);
 	}else{
-		if (joyangular<-vel_angolare_max){
+        if (joyangular<-max_vel_theta){
 			imm(cv::Range(imm.rows/2-5,imm.rows/2+5),cv::Range(imm.cols/2+10,imm.cols))=cv::Scalar(150);
 			return;
 		}
-		imm(cv::Range(imm.rows/2-4,imm.rows/2+4),cv::Range(imm.cols/2+10,-((imm.cols/2-11)/vel_angolare_max)*joyangular+imm.cols/2+11))=cv::Scalar(150);
+        imm(cv::Range(imm.rows/2-4,imm.rows/2+4),cv::Range(imm.cols/2+10,-((imm.cols/2-11)/max_vel_theta)*joyangular+imm.cols/2+11))=cv::Scalar(150);
 	}
 }
 
@@ -550,8 +551,19 @@ int main(int argc, char **argv)
 	  private_nh_ptr->setParam("momentum_scale",.1f);
 
 
+    // ROS parameters
+
+    // max vel parameters
+
+    private_nh.param("max_vel_x", max_vel_x, 1.0);
+    private_nh.param("max_vel_theta", max_vel_theta, 1.0);
+
+    // Update rate
+    double fps=25.0; // Hz
+    private_nh.param("rate", fps, 25.0);
+
 	// GUI parameter
-	private_nh.param("GUI", GUI, false);
+    private_nh.param("GUI", GUI, false);
 
 	// parametri ROS - letti nel ciclo
 	double par;
@@ -564,6 +576,17 @@ int main(int argc, char **argv)
 	private_nh_ptr->getParam("momentum_scale",par);
 	momentum_scale_tb=(int)(par*1000);
 	
+
+    printf("gradient_based_navigation parameters\n");
+    printf("  obstaclesDistanceInfluence_m: %.1f (m)\n",(double)distanza_saturazione_cm*100);
+    printf("  force_scale: %.3f (m)\n",(double)force_scale_tb/1000);
+    printf("  momentum_scale: %.3f (m)\n",(double)momentum_scale_tb/1000);
+    printf("  max_vel_x: %.1f\n",max_vel_x);
+    printf("  max_vel_theta: %.1f\n",max_vel_theta);
+    printf("  rate: %.1f\n",fps);
+
+
+
 	// OpenCV stuff
 	cv::namedWindow("GUI", 1);
 	cv::createTrackbar("attractive distance influence (cm)", "GUI", &distanza_saturazione_attr_cm, 200, onTrackbarSaturazioneattrazione, &n);
@@ -571,10 +594,8 @@ int main(int argc, char **argv)
 	cv::createTrackbar("Force Scale (x1000)", "GUI", &force_scale_tb, 2000, onTrackbarForceScaling, 0);
 	cv::createTrackbar("Momentum Scale (x1000)", "GUI", &momentum_scale_tb, 2000, onTrackbarMomentumScaling, 0);
 
-    // parametro ROS
-	int fps=40;
 	ros::Rate loop_rate(fps);
-	ros::AsyncSpinner spinner(8); // n threads
+    ros::AsyncSpinner spinner(4); // n threads
 	spinner.start();
 
 	float repulsive_linear_acc=0;
@@ -619,7 +640,7 @@ int main(int argc, char **argv)
 	int iter=0;
 
 	while(n.ok()){
-		/*** read ros params every 100 iterations *******************/
+        /*** read ros params every fps iterations (1 second) *******************/
 		if (iter==0){
 			private_nh_ptr->getParam("GUI", GUI);
 			n_pixel_sat_attr=getNumPixelSaturazioneattrazione();
@@ -631,7 +652,7 @@ int main(int argc, char **argv)
 		iter++;
 		if(iter>fps) iter=0;
 		/************************************************************/
-	
+
 		if (attr_points.size()>0) {
 		  /*** tf *************************/
 		  try{
@@ -651,6 +672,7 @@ int main(int argc, char **argv)
 		  /********************************/
 		}
 		
+
 		/*** Building the force field ***/
 		costruisciScanImage();
 		costruisciDistanceImage();
@@ -676,10 +698,10 @@ int main(int argc, char **argv)
 		}
 #endif	
 		if (!joystick_override_active && robot_was_moving() && delay_last_input()>MAX_MSG_DELAY) {
-				ROS_INFO("No controller input detected, switching to Joystick only control");
+                ROS_INFO("No controller input detected, stopping the robot.");
 				desired_cmd_vel.linear.x=0;  desired_cmd_vel.angular.z=0;	
-				joystick_override_active = true;
-				ros::param::set("use_only_joystick", 1);
+                //joystick_override_active = true;
+                //ros::param::set("use_only_joystick", 1);
 		}
 		if (delay_last_laser()>MAX_MSG_DELAY) {
 		    if (delay_last_laser()<4*MAX_MSG_DELAY){
@@ -725,33 +747,30 @@ int main(int argc, char **argv)
 		}	
 		////////////////////////////////////////////////
 
-		if(target_ang_vel>vel_angolare_max){
-			target_ang_vel=vel_angolare_max;
+        if(target_ang_vel>max_vel_theta){
+            target_ang_vel=max_vel_theta;
 		}
-		if(target_ang_vel<-vel_angolare_max){
-			target_ang_vel=-vel_angolare_max;
+        if(target_ang_vel<-max_vel_theta){
+            target_ang_vel=-max_vel_theta;
 		}	
-		if(target_linear_vel>vel_lineare_max){
-			target_linear_vel=vel_lineare_max;
+        if(target_linear_vel>max_vel_x){
+            target_linear_vel=max_vel_x;
 		}	
-		if(target_linear_vel<-vel_lineare_max){
-			target_linear_vel=-vel_lineare_max;
+        if(target_linear_vel<-max_vel_x){
+            target_linear_vel=-max_vel_x;
 		}
-    std::string esparam; int iesparam;
-    if (ros::param::get("emergency_stop", esparam))
-    {
-      if (esparam=="1") {
-          target_linear_vel=0; target_ang_vel=0;
-          //std::cout << "Emergency Stop param: " << esparam << std::endl;
-      }
-    }
-    else if (ros::param::get("emergency_stop", iesparam))
-    {
-      if (iesparam==1) {
-          target_linear_vel=0; target_ang_vel=0;
+
+        std::string esparam="0"; int iesparam=0;
+        ros::param::get("emergency_stop", esparam);
+        ros::param::get("emergency_stop", iesparam);
+
+        if ((esparam=="1") || (iesparam==1)) {
           //std::cout << "Emergency Stop param: " << iesparam << std::endl;
-      }
-    }
+          if (target_linear_vel < -0.3) target_linear_vel = -0.3; else target_linear_vel=0;
+          target_ang_vel=0;
+        }
+
+
     joystick_override_active = false;
     if (ros::param::get("use_only_joystick", esparam))
     {
@@ -766,23 +785,29 @@ int main(int argc, char **argv)
       }
     }
 
-    double max_linear_acc = 0.05;
+    double max_linear_acc = 0.1;
     if (target_linear_vel > 0 && target_linear_vel - current_linear_vel > max_linear_acc){
-		current_linear_vel = std::min((double)vel_lineare_max, (current_linear_vel+max_linear_acc));
-		//std::cout << "target : " << target_linear_vel << " current : " << current_linear_vel << std::endl;
-	}
-	else
+        current_linear_vel = std::min((double)max_vel_x, (current_linear_vel+max_linear_acc));
+        //std::cout << "target : " << target_linear_vel << " current : " << current_linear_vel << std::endl;
+    }
+    else if (target_linear_vel < 0 && target_linear_vel - current_linear_vel < -max_linear_acc){
+        current_linear_vel = std::max(-(double)max_vel_x, (current_linear_vel-max_linear_acc));
+        //std::cout << "target : " << target_linear_vel << " current : " << current_linear_vel << std::endl;
+    }
+    else
     	current_linear_vel = target_linear_vel;
 
     current_ang_vel = target_ang_vel;
 
-   command_vel.linear.x = current_linear_vel;
+    command_vel.linear.x = current_linear_vel;
 	command_vel.angular.z = current_ang_vel;
 	pub.publish(command_vel);
 	/********************************************************************************/
 
 		
 		if(GUI){
+            ros::spinOnce();
+
 			/**** Create the GUI ************************************************************/
 			costruisciImmagineAssi(visual_joy1,target_linear_vel,target_ang_vel);
 			costruisciImmagineAssi(visual_joy2,command_vel.linear.x,command_vel.angular.z);
@@ -792,9 +817,8 @@ int main(int argc, char **argv)
 			cv::waitKey(1000/fps);
 			/********************************************************************************/
 		}
-
-
-		loop_rate.sleep();
+        else
+            loop_rate.sleep();
 	}
 	spinner.stop();
 	return 0;
