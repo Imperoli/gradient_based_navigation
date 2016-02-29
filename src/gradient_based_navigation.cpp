@@ -578,7 +578,7 @@ int main(int argc, char **argv)
 	
 
     printf("gradient_based_navigation parameters\n");
-    printf("  obstaclesDistanceInfluence_m: %.1f (m)\n",(double)distanza_saturazione_cm*100);
+    printf("  obstaclesDistanceInfluence_m: %.1f (m)\n",(double)distanza_saturazione_cm/100.0);
     printf("  force_scale: %.3f (m)\n",(double)force_scale_tb/1000);
     printf("  momentum_scale: %.3f (m)\n",(double)momentum_scale_tb/1000);
     printf("  max_vel_x: %.1f\n",max_vel_x);
