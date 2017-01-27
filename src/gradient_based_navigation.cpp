@@ -639,7 +639,7 @@ int main(int argc, char **argv)
 	
 	int iter=0;
 
-	while(n.ok()){
+	while(ros::ok()){ //n.ok()){
         /*** read ros params every fps iterations (1 second) *******************/
 		if (iter==0){
 			private_nh_ptr->getParam("GUI", GUI);
@@ -718,22 +718,39 @@ int main(int argc, char **argv)
 		target_ang_vel=command_vel.angular.z;
 		speed=command_vel.linear.x;
 
-		if(speed!=0){
+		if(fabs(speed)>0.1){
+            // std::cerr << "gbn:: speed " << speed << " " << fabs(speed)*1e3 << std::endl;
 			calcolaMomentoeForza(matriceForze,momento,forza);
 			repulsive_linear_acc=forza[1];		
-			repulsive_angular_acc=momento[2];		
-			if(speed>0&&forza[1]>0){	
+			repulsive_angular_acc=momento[2];
+  
+        //std::cerr << "gbn:: speed " << speed;
+        //std::cerr << " target " << target_linear_vel << " " << target_ang_vel;
+        //std::cerr << " repulsion " << repulsive_linear_acc << " " << repulsive_angular_acc;
+
+			if(speed>0&&forza[1]>=0){	
 				target_linear_vel-=force_scale*repulsive_linear_acc*.01;
+                if (target_linear_vel<0) target_linear_vel=0;
+                if(fabs(target_linear_vel)<0.3 && fabs(target_ang_vel)>0.3) repulsive_angular_acc=0;
 				target_ang_vel+=momentum_scale*repulsive_angular_acc*.01;
 			}else if(speed<0&&forza[1]<0){
-				target_linear_vel-=force_scale*repulsive_linear_acc*.01;
+				target_linear_vel-=force_scale*repulsive_linear_acc*.01; // LI ???
+                if (target_linear_vel<0) target_linear_vel=0; // LI ???
+                if(fabs(target_linear_vel)<0.3 && fabs(target_ang_vel)>0.3) repulsive_angular_acc=0;
 				target_ang_vel-=momentum_scale*repulsive_angular_acc*.01;
 			}
+            // else obstacle behind, so don't apply force
+
+        //std::cerr << " -> " << repulsive_linear_acc << " " << repulsive_angular_acc;
+        //std::cerr << " " << target_linear_vel << " " << target_ang_vel << std::endl;
+
 		}	
 
 		if (target_linear_vel*speed<0){
 			target_linear_vel=0;
 		}
+
+
 
 		///////////// attrazione ///////////////////////
 		if(speed>0){
@@ -814,11 +831,12 @@ int main(int argc, char **argv)
 			creaGUI(imm,dist_ridotta,robot_grad,visual_joy1,visual_joy2,immTot);
 
 			cv::imshow("GUI",immTot);
-			cv::waitKey(1000/fps);
+			cv::waitKey(10);
+            
 			/********************************************************************************/
 		}
-        else
-            loop_rate.sleep();
+        
+        loop_rate.sleep();
 	}
 	spinner.stop();
 	return 0;
