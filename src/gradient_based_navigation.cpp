@@ -586,14 +586,14 @@ int main(int argc, char **argv)
     printf("  rate: %.1f\n",fps);
 
 
-
-	// OpenCV stuff
-	cv::namedWindow("GUI", 1);
-	cv::createTrackbar("attractive distance influence (cm)", "GUI", &distanza_saturazione_attr_cm, 200, onTrackbarSaturazioneattrazione, &n);
-	cv::createTrackbar("Obstacles distance influence (cm)", "GUI", &distanza_saturazione_cm, 200, onTrackbarSaturazione, &n);
-	cv::createTrackbar("Force Scale (x1000)", "GUI", &force_scale_tb, 2000, onTrackbarForceScaling, 0);
-	cv::createTrackbar("Momentum Scale (x1000)", "GUI", &momentum_scale_tb, 2000, onTrackbarMomentumScaling, 0);
-
+	if (GUI) {
+		// OpenCV stuff
+		cv::namedWindow("GUI", 1);
+		cv::createTrackbar("attractive distance influence (cm)", "GUI", &distanza_saturazione_attr_cm, 200, onTrackbarSaturazioneattrazione, &n);
+		cv::createTrackbar("Obstacles distance influence (cm)", "GUI", &distanza_saturazione_cm, 200, onTrackbarSaturazione, &n);
+		cv::createTrackbar("Force Scale (x1000)", "GUI", &force_scale_tb, 2000, onTrackbarForceScaling, 0);
+		cv::createTrackbar("Momentum Scale (x1000)", "GUI", &momentum_scale_tb, 2000, onTrackbarMomentumScaling, 0);
+	}
 	ros::Rate loop_rate(fps);
     ros::AsyncSpinner spinner(4); // n threads
 	spinner.start();
