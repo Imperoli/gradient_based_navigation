@@ -68,10 +68,10 @@ class ErraticKeyboardTeleopNode
 		//pub_ = n_.advertise<geometry_msgs::Twist>("mobile_base/commands/velocity", 1);
             
             ros::NodeHandle n_private("~");
-            n_private.param("walk_vel", walk_vel_, 0.5);
-            n_private.param("run_vel", run_vel_, 1.0);
-            n_private.param("yaw_rate", yaw_rate_, 1.0);
-            n_private.param("yaw_rate_run", yaw_rate_run_, 1.5);
+            n_private.param("max_vel_x", walk_vel_, 0.5);
+            n_private.param("run_vel_x", run_vel_, 1.0);
+            n_private.param("max_vel_th", yaw_rate_, 1.0);
+            n_private.param("run_vel_th", yaw_rate_run_, 1.5);
         }
         
         ~ErraticKeyboardTeleopNode() { }

@@ -102,7 +102,7 @@ int main(int argc, char **argv)
     ros::NodeHandle n, pn("~");
 
     pn.param("max_vel_x", max_vel_x, 1.0);
-    pn.param("max_vel_x", max_vel_theta, 1.0);
+    pn.param("max_vel_th", max_vel_theta, 1.0);
 
     pub = n.advertise<geometry_msgs::Twist>("joystick_cmd_vel", 1);
     
