@@ -9,6 +9,9 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include <geometry_msgs/Polygon.h>
 
+#include <dynamic_reconfigure/server.h>
+#include <gradient_based_navigation/GradientBasedNavigationConfig.h>
+
 
 bool GUI=false;
 
@@ -89,7 +92,7 @@ ros::NodeHandle *private_nh_ptr;
 
 
 void parseCmdLine(int argc, char** argv){
-	float sizer=80;
+    float sizer=20;
 	if (argc>1){
 		sizer=atof(argv[1]);
 		if (sizer>400||sizer<10){
@@ -518,6 +521,39 @@ void calcolaMomentoeForza(cv::Mat& forze, cv::Vec3f& momento, cv::Vec3f& forza){
 	forza=forzatemp;
 } 
 
+void callbackReconfigure(gradient_based_navigation::GradientBasedNavigationConfig &config, uint32_t level){
+    ROS_INFO("Reconfigure request");
+
+    max_vel_x = config.max_vel_x;
+    ROS_INFO("max_vel_x: %f",max_vel_x);
+
+    max_vel_theta = config.max_vel_theta;
+    ROS_INFO("max_vel_theta: %f", max_vel_theta);
+
+    distanza_saturazione_attr_cm = config.attractive_distance_influence;
+    distanza_saturazione_attr=distanza_saturazione_attr_cm/100.f;
+    n_pixel_sat_attr=(distanza_saturazione_attr)/resolution;
+    private_nh_ptr->setParam("attractiveDistanceInfluence_m",distanza_saturazione_attr);
+    ROS_INFO("attractive_distance_influence: %f", distanza_saturazione_attr);
+
+    distanza_saturazione_cm = config.obstacle_distance_influence;
+    distanza_saturazione=distanza_saturazione_cm/100.f;
+    n_pixel_sat=(distanza_saturazione)/resolution;
+    private_nh_ptr->setParam("obstaclesDistanceInfluence_m",distanza_saturazione);
+    ROS_INFO("obstacle_distance_influence: %f", distanza_saturazione);
+
+    force_scale_tb = config.force_scale;
+    force_scale=(force_scale_tb/1000.f)/(pixel_robot/2);
+    private_nh_ptr->setParam("force_scale",(float)force_scale_tb/1000.f);
+    ROS_INFO("force_scale: %f",force_scale);
+
+    momentum_scale_tb = config.momentum_scale;
+    momentum_scale=(momentum_scale_tb/1000.f)/(pixel_robot/2);
+    private_nh_ptr->setParam("momentum_scale",(float)momentum_scale_tb/1000.f);
+    ROS_INFO("momentum_scale: %f",momentum_scale);
+
+}
+
 
 int main(int argc, char **argv)
 {
@@ -584,6 +620,12 @@ int main(int argc, char **argv)
     printf("  max_vel_x: %.1f\n",max_vel_x);
     printf("  max_vel_theta: %.1f\n",max_vel_theta);
     printf("  rate: %.1f\n",fps);
+
+    dynamic_reconfigure::Server<gradient_based_navigation::GradientBasedNavigationConfig> server;
+    dynamic_reconfigure::Server<gradient_based_navigation::GradientBasedNavigationConfig>::CallbackType f;
+
+    f=boost::bind(&callbackReconfigure, _1, _2);
+    server.setCallback(f);
 
 
 	if (GUI) {
