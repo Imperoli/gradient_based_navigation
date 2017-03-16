@@ -760,50 +760,50 @@ int main(int argc, char **argv)
 		target_ang_vel=command_vel.angular.z;
 		speed=command_vel.linear.x;
 
-		if(fabs(speed)>0.1){
-            // std::cerr << "gbn:: speed " << speed << " " << fabs(speed)*1e3 << std::endl;
-			calcolaMomentoeForza(matriceForze,momento,forza);
-			repulsive_linear_acc=forza[1];		
-			repulsive_angular_acc=momento[2];
+//		if(fabs(speed)>0.1){
+//            // std::cerr << "gbn:: speed " << speed << " " << fabs(speed)*1e3 << std::endl;
+//			calcolaMomentoeForza(matriceForze,momento,forza);
+//			repulsive_linear_acc=forza[1];
+//			repulsive_angular_acc=momento[2];
   
-        //std::cerr << "gbn:: speed " << speed;
-        //std::cerr << " target " << target_linear_vel << " " << target_ang_vel;
-        //std::cerr << " repulsion " << repulsive_linear_acc << " " << repulsive_angular_acc;
+//        //std::cerr << "gbn:: speed " << speed;
+//        //std::cerr << " target " << target_linear_vel << " " << target_ang_vel;
+//        //std::cerr << " repulsion " << repulsive_linear_acc << " " << repulsive_angular_acc;
 
-			if(speed>0&&forza[1]>=0){	
-				target_linear_vel-=force_scale*repulsive_linear_acc*.01;
-                if (target_linear_vel<0) target_linear_vel=0;
-                if(fabs(target_linear_vel)<0.3 && fabs(target_ang_vel)>0.3) repulsive_angular_acc=0;
-				target_ang_vel+=momentum_scale*repulsive_angular_acc*.01;
-			}else if(speed<0&&forza[1]<0){
-				target_linear_vel-=force_scale*repulsive_linear_acc*.01; // LI ???
-                if (target_linear_vel<0) target_linear_vel=0; // LI ???
-                if(fabs(target_linear_vel)<0.3 && fabs(target_ang_vel)>0.3) repulsive_angular_acc=0;
-				target_ang_vel-=momentum_scale*repulsive_angular_acc*.01;
-			}
-            // else obstacle behind, so don't apply force
+//			if(speed>0&&forza[1]>=0){
+//				target_linear_vel-=force_scale*repulsive_linear_acc*.01;
+//                if (target_linear_vel<0) target_linear_vel=0;
+//                if(fabs(target_linear_vel)<0.3 && fabs(target_ang_vel)>0.3) repulsive_angular_acc=0;
+//				target_ang_vel+=momentum_scale*repulsive_angular_acc*.01;
+//			}else if(speed<0&&forza[1]<0){
+//				target_linear_vel-=force_scale*repulsive_linear_acc*.01; // LI ???
+//                if (target_linear_vel<0) target_linear_vel=0; // LI ???
+//                if(fabs(target_linear_vel)<0.3 && fabs(target_ang_vel)>0.3) repulsive_angular_acc=0;
+//				target_ang_vel-=momentum_scale*repulsive_angular_acc*.01;
+//			}
+//            // else obstacle behind, so don't apply force
 
-        //std::cerr << " -> " << repulsive_linear_acc << " " << repulsive_angular_acc;
-        //std::cerr << " " << target_linear_vel << " " << target_ang_vel << std::endl;
+//        //std::cerr << " -> " << repulsive_linear_acc << " " << repulsive_angular_acc;
+//        //std::cerr << " " << target_linear_vel << " " << target_ang_vel << std::endl;
 
-		}	
+//		}
 
-		if (target_linear_vel*speed<0){
-			target_linear_vel=0;
-		}
+//		if (target_linear_vel*speed<0){
+//			target_linear_vel=0;
+//		}
 
 
 
 		///////////// attrazione ///////////////////////
-		if(speed>0){
-			calcolaMomentoeForza(matriceForzeattr,momento,forza);
-			attr_linear_acc=forza[1];		
-			attr_angular_acc=momento[2];		
-			if(forza[1]>0){	
-				target_linear_vel+=force_scale*attr_linear_acc*.01;
-				target_ang_vel-=momentum_scale*attr_angular_acc*.01;
-			}
-		}	
+//		if(speed>0){
+//			calcolaMomentoeForza(matriceForzeattr,momento,forza);
+//			attr_linear_acc=forza[1];
+//			attr_angular_acc=momento[2];
+//			if(forza[1]>0){
+//				target_linear_vel+=force_scale*attr_linear_acc*.01;
+//				target_ang_vel-=momentum_scale*attr_angular_acc*.01;
+//			}
+//		}
 		////////////////////////////////////////////////
 
         if(target_ang_vel>max_vel_theta){
