@@ -530,27 +530,37 @@ void callbackReconfigure(gradient_based_navigation::GradientBasedNavigationConfi
     max_vel_theta = config.max_vel_theta;
     ROS_INFO("max_vel_theta: %f", max_vel_theta);
 
-    distanza_saturazione_attr_cm = config.attractive_distance_influence;
-    distanza_saturazione_attr=distanza_saturazione_attr_cm/100.f;
+    // distanza_saturazione_attr_cm = config.attractive_distance_influence;
+    // distanza_saturazione_attr = distanza_saturazione_attr_cm/100.f;
+	distanza_saturazione_attr = config.attractive_distance_influence;
     n_pixel_sat_attr=(distanza_saturazione_attr)/resolution;
     private_nh_ptr->setParam("attractiveDistanceInfluence_m",distanza_saturazione_attr);
     ROS_INFO("attractive_distance_influence: %f", distanza_saturazione_attr);
 
-    distanza_saturazione_cm = config.obstacle_distance_influence;
-    distanza_saturazione=distanza_saturazione_cm/100.f;
+	// distanza_saturazione_cm = config.obstacle_distance_influence;
+    // distanza_saturazione = distanza_saturazione_cm/100.f;
+	distanza_saturazione = config.obstacle_distance_influence;
     n_pixel_sat=(distanza_saturazione)/resolution;
     private_nh_ptr->setParam("obstaclesDistanceInfluence_m",distanza_saturazione);
     ROS_INFO("obstacle_distance_influence: %f", distanza_saturazione);
 
-    force_scale_tb = config.force_scale;
-    force_scale=(force_scale_tb/1000.f)/(pixel_robot/2);
-    private_nh_ptr->setParam("force_scale",(float)force_scale_tb/1000.f);
-    ROS_INFO("force_scale: %f",force_scale);
+    // force_scale_tb = config.force_scale;
+    // force_scale=(force_scale_tb/1000.f)/(pixel_robot/2);
+	force_scale=config.force_scale/(pixel_robot/2);
+	force_scale_tb = (int)(config.force_scale * 1000);
+    private_nh_ptr->setParam("force_scale",force_scale);
+    ROS_INFO("force_scale (m): %f",force_scale*(pixel_robot/2));
 
-    momentum_scale_tb = config.momentum_scale;
-    momentum_scale=(momentum_scale_tb/1000.f)/(pixel_robot/2);
-    private_nh_ptr->setParam("momentum_scale",(float)momentum_scale_tb/1000.f);
-    ROS_INFO("momentum_scale: %f",momentum_scale);
+    // momentum_scale_tb = config.momentum_scale;
+    // momentum_scale=(momentum_scale_tb/1000.f)/(pixel_robot/2);
+	momentum_scale=config.momentum_scale/(pixel_robot/2);
+	momentum_scale_tb = (int)(config.momentum_scale * 1000);
+    private_nh_ptr->setParam("momentum_scale",(float)momentum_scale);
+    ROS_INFO("momentum_scale (m): %f",momentum_scale*(pixel_robot/2));
+
+	double robot_radius=config.robot_radius;
+    private_nh_ptr->setParam("robot_radius",robot_radius);
+    ROS_INFO("(NOT USED) robot_radius (m): %f",robot_radius);
 
 }
 
@@ -587,6 +597,16 @@ int main(int argc, char **argv)
 	  private_nh_ptr->setParam("momentum_scale",.1f);
 
 
+	// Reconfigure settings
+
+    dynamic_reconfigure::Server<gradient_based_navigation::GradientBasedNavigationConfig> server;
+    dynamic_reconfigure::Server<gradient_based_navigation::GradientBasedNavigationConfig>::CallbackType f;
+
+    f=boost::bind(&callbackReconfigure, _1, _2);
+    server.setCallback(f);
+
+
+
     // ROS parameters
 
     // max vel parameters
@@ -620,12 +640,6 @@ int main(int argc, char **argv)
     printf("  max_vel_x: %.1f\n",max_vel_x);
     printf("  max_vel_theta: %.1f\n",max_vel_theta);
     printf("  rate: %.1f\n",fps);
-
-    dynamic_reconfigure::Server<gradient_based_navigation::GradientBasedNavigationConfig> server;
-    dynamic_reconfigure::Server<gradient_based_navigation::GradientBasedNavigationConfig>::CallbackType f;
-
-    f=boost::bind(&callbackReconfigure, _1, _2);
-    server.setCallback(f);
 
 
 	if (GUI) {
