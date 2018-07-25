@@ -1,0 +1,25 @@
+<launch>
+	<arg name="use_joystick" default="true" />
+		
+    <!-- keyboard -->
+	<group unless="$(arg use_joystick)">
+	    <node pkg="gradient_based_navigation" type="keyboard_control" name="keyboard" output="screen">
+			<remap from="joystick_cmd_vel" to="cmd_vel" />
+		</node>
+	</group>
+
+	<!-- joystick -->
+	<group if="$(arg use_joystick)">
+	    <node pkg="joy" type="joy_node" name="joy" output="screen">
+		  <param name="dev" type="string" value="/dev/input/js0" />
+		  <param name="deadzone" value="0.12" />		  
+	    </node>
+
+	    <node pkg="gradient_based_navigation" type="joystick_control" name="joystick" output="screen">
+		  <remap from="joystick_cmd_vel" to="cmd_vel" />
+		  <param name="max_vel_x" value="0.3" />
+		  <param name="max_vel_th" value="1.0" />
+		</node>
+	</group>
+		
+</launch>
