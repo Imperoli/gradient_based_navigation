@@ -61,6 +61,7 @@ geometry_msgs::Twist vel;
 ros::Publisher pub;
 
 long cnt = 0;
+int cnt_zero = 0; // how many consecutive (0,0) values sent
 double max_vel_x, max_vel_theta;
 
 void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
@@ -71,7 +72,19 @@ void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
 	//std::cout<<msg->axes[PS3_AXIS_BUTTON_REAR_RIGHT_2]<<std::endl;
 	
     vel.angular.z=msg->axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS]*max_vel_theta;
-	pub.publish(vel);
+
+    if ((fabs(vel.linear.x)<1e-3) && (fabs(vel.angular.z)<1e-3)) {
+        vel.linear.x = 0;
+        vel.angular.z = 0;
+        cnt_zero++;
+    }
+    else
+        cnt_zero = 0;
+
+    cout << " -- " << vel.linear.x << " " << vel.angular.z << " " << cnt_zero << endl;
+
+    if (cnt_zero<10)
+    	pub.publish(vel);
 	
 	if(msg->buttons[LOGITECH_BUTTON_RB]) {
 	  ROS_WARN("!!!Emergency Stop!!!");
@@ -114,8 +127,8 @@ int main(int argc, char **argv)
     ros::AsyncSpinner spinner(1); // n threads
     spinner.start();
     while(n.ok()){		
-            pub.publish(vel);
-            loop_rate.sleep();
+        //   pub.publish(vel);
+        loop_rate.sleep();
     }
 
     return 0;
