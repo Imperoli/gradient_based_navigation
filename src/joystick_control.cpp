@@ -81,9 +81,9 @@ void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
     else
         cnt_zero = 0;
 
-    cout << " -- " << vel.linear.x << " " << vel.angular.z << " " << cnt_zero << endl;
+    // cout << " -- " << vel.linear.x << " " << vel.angular.z << " " << cnt_zero << endl;
 
-    if (cnt_zero<10)
+    if (cnt_zero<10) // don't publish 0,0 more than 10 times
     	pub.publish(vel);
 	
 	if(msg->buttons[LOGITECH_BUTTON_RB]) {
