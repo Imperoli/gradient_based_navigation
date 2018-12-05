@@ -13,6 +13,9 @@
 #include <gradient_based_navigation/GradientBasedNavigationConfig.h>
 
 
+
+
+
 bool GUI=false;
 
 int w=600;
@@ -42,7 +45,7 @@ float posy;
 int indx;
 int indy;
 
-float robot_posx=0; float robot_posy=0 ; float robot_orient=0;
+float robot_posx=5; float robot_posy=5 ; float robot_orient=0;
 ros::Time time_stamp;
 
 int maskSize = CV_DIST_MASK_PRECISE;
@@ -345,15 +348,42 @@ void costruisciScanImage(){
 void costruisciDistanceImage(){
 	cv::Mat imm2=imm(cv::Range(h/2-(4/resolution),h/2+(4/resolution)), cv::Range(w/2-(4/resolution),w/2+(4/resolution)));
 	cv::distanceTransform( imm2, dist, distType, maskSize );
-	dist *= 1.f/n_pixel_sat; //1 su n pixel per la saturazione
-	cv::pow(dist, .5, dist);
+	//dist *= 1.f/n_pixel_sat; //1 su n pixel per la saturazione
+	//cv::pow(dist, .5, dist);
+    
+    //set the parameters for the pick (translation d0 and decrease rate with respect to 0)
+    float pheigth = 2;
+    float w0 = 30;
+    float d0 = 10;
+    //float d1 = 30;
+
+    //set the parameters for the decrease rate with respect to +Inf
+    float wInf = 50;
+
 	for(int i=0;i<dist.rows;i+=1){
 		for(int j=0;j<dist.cols;j+=1){
-			if(dist.at<float>(i,j)>1.f){
-				dist.at<float>(i,j)=1.f;
-			}
+			//if(dist.at<float>(i,j)>1.f){
+				//dist.at<float>(i,j)=1.f;
+                
+  
+                float dist_elem = dist.at<float>(i,j);
+
+                float base = dist_elem - d0;
+                float exponent = - (pow(base,2) / w0);
+                float exponentplusInf = - (base / wInf);
+                //float exponentplusInf2 = - 0.2 * ((dist_elem - d1) / wInf);
+
+                if(dist_elem > d0){
+                    dist.at<float>(i,j) = pheigth * expf(exponentplusInf);
+                }
+               else{
+                    dist.at<float>(i,j) = pheigth * expf(exponent);
+                    //dist.at<float>(i,j) = pheigth * (1/ (1 + expf(exponentplusInf))) * (1/ (1 + expf(-exponentplusInf2)));
+                }
+			//}
 		}
 	}
+
 	if(GUI){	
 		int size2=round(grandezza_robot/resolution);
 		for (int i=-size2/2;i<size2/2;i++){

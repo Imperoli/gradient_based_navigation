@@ -43,11 +43,15 @@
 #define KEYCODE_A 0x61
 #define KEYCODE_S 0x73
 #define KEYCODE_D 0x64
+#define KEYCODE_X 0x78
+#define KEYCODE_C 0x63
 
 #define KEYCODE_A_CAP 0x41
 #define KEYCODE_D_CAP 0x44
 #define KEYCODE_S_CAP 0x53
 #define KEYCODE_W_CAP 0x57
+#define KEYCODE_X_CAP 0x58
+#define KEYCODE_C_CAP 0x43
 
 class ErraticKeyboardTeleopNode
 {
@@ -89,6 +93,7 @@ ErraticKeyboardTeleopNode* tbk;
 int kfd = 0;
 struct termios cooked, raw;
 bool done;
+bool continuous_push_control_mode = true;
 
 int main(int argc, char** argv)
 {
@@ -125,8 +130,10 @@ void ErraticKeyboardTeleopNode::keyboardLoop()
     tcsetattr(kfd, TCSANOW, &raw);
     
     puts("Reading from keyboard");
-    puts("Use WASD keys to control the robot");
+    puts("Use W A S D keys to control the robot");
     puts("Press Shift to move faster");
+    puts("Press C to toggle continuous_push_control_mode");
+    puts("Press X to stop the robot");
     
     struct pollfd ufd;
     ufd.fd = kfd;
@@ -156,7 +163,8 @@ void ErraticKeyboardTeleopNode::keyboardLoop()
         {
             if (dirty == true)
             {
-                stopRobot();
+                if (continuous_push_control_mode)
+                    stopRobot();
                 dirty = false;
             }
             
@@ -214,13 +222,35 @@ void ErraticKeyboardTeleopNode::keyboardLoop()
                 turn = -1;
                 dirty = true;
                 break;
-                
-            default:
-                max_tv = walk_vel_;
-                max_rv = yaw_rate_;
+
+            case KEYCODE_X:
+            case KEYCODE_X_CAP:
                 speed = 0;
                 turn = 0;
-                dirty = false;
+                dirty = true;
+                break;
+
+            case KEYCODE_C:
+            case KEYCODE_C_CAP:
+                continuous_push_control_mode = !continuous_push_control_mode;
+                if (continuous_push_control_mode)
+                    puts("continuous_push_control_mode enabled");
+                else
+                    puts("continuous_push_control_mode disabled");
+                speed = 0;
+                turn = 0;
+                break;
+                
+            default:
+                if (continuous_push_control_mode) {
+                    max_tv = walk_vel_;
+                    max_rv = yaw_rate_;
+                    speed = 0;
+                    turn = 0;
+                    dirty = false;
+                }
+                
+
         }
         
         cmdvel_.linear.x = speed * max_tv;
