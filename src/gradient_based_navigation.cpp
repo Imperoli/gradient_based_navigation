@@ -71,8 +71,8 @@ int force_scale_tb=500;
 float force_scale=(force_scale_tb/1000.f)/(pixel_robot/2);
 float attr_dist_thresh=.2;
 
-bool obstacleNearness; // if function to remain close to obstacles is enabled
-
+bool obstacleNearnessEnabled; // if function to remain close to obstacles is enabled
+float  obstacleNearnessDistance = 1.0; // desired distance for obstacle nearness
 
 int momentum_scale_tb=150;
 float momentum_scale=(momentum_scale_tb/1000.f)/(pixel_robot/2);
@@ -146,11 +146,18 @@ float getRepulsiveMomentumScale(){
 	return scale/(pixel_robot/2);
 }
 
-bool getObstacleNearness(){
+bool getobstacleNearnessEnabled(){
     bool par;
-    private_nh_ptr->getParam("obstacleNearness",par);
+    private_nh_ptr->getParam("obstacleNearnessEnabled",par);
     return par;
 }
+
+float getobstacleNearnessDistance(){
+    float par;
+    private_nh_ptr->getParam("obstacleNearnessDistance",par);
+    return par;
+}
+
 
 /*** Callback for retrieving attractive Points ***/
 void callbackattractivePoints(const geometry_msgs::Polygon::ConstPtr& msg)
@@ -363,7 +370,7 @@ void costruisciDistanceImage(){
     //set the parameters for the pick (translation d0 and decrease rate with respect to 0)
     float pheigth = 2;
     float w0 = 30;
-    float d0 = 10;
+    float d0 = obstacleNearnessDistance/resolution;  // LI was 10 
     //float d1 = 30;
 
     //set the parameters for the decrease rate with respect to +Inf
@@ -634,8 +641,10 @@ int main(int argc, char **argv)
 	  private_nh_ptr->setParam("force_scale",.4f);
 	if (!private_nh_ptr->hasParam("momentum_scale"))
 	  private_nh_ptr->setParam("momentum_scale",.1f);
-	if (!private_nh_ptr->hasParam("obstacleNearness"))
-	  private_nh_ptr->setParam("obstacleNearness",true);
+	if (!private_nh_ptr->hasParam("obstacleNearnessEnabled"))
+	  private_nh_ptr->setParam("obstacleNearnessEnabled",true);
+	if (!private_nh_ptr->hasParam("obstacleNearnessDistance"))
+	  private_nh_ptr->setParam("obstacleNearnessDistance",1.0);
 
 
 	// Reconfigure settings
@@ -672,8 +681,10 @@ int main(int argc, char **argv)
 	force_scale_tb=(int)(par*1000);
 	private_nh_ptr->getParam("momentum_scale",par);
 	momentum_scale_tb=(int)(par*1000);
-    private_nh_ptr->getParam("obstacleNearness",par);
-    obstacleNearness = par;
+    private_nh_ptr->getParam("obstacleNearnessEnabled",par);
+    obstacleNearnessEnabled = par;
+    private_nh_ptr->getParam("obstacleNearnessDistance",par);
+    obstacleNearnessDistance = par;
 	  
 
     printf("gradient_based_navigation parameters\n");
@@ -683,7 +694,8 @@ int main(int argc, char **argv)
     printf("  max_vel_x: %.1f\n",max_vel_x);
     printf("  max_vel_theta: %.1f\n",max_vel_theta);
     printf("  rate: %.1f\n",fps);
-    printf("  obstacleNearness: %s\n",obstacleNearness?"true":"false");
+    printf("  obstacleNearnessEnabled: %s\n",obstacleNearnessEnabled?"true":"false");
+    printf("  obstacleNearnessDistance: %.2f\n",obstacleNearnessDistance);
 
 
 	if (GUI) {
@@ -749,7 +761,8 @@ int main(int argc, char **argv)
 			force_scale=getRepulsiveForceScale();
 			momentum_scale=getRepulsiveMomentumScale();
 			attr_dist_thresh=getattractiveDistanceThreshold();
-            obstacleNearness=getObstacleNearness();
+            obstacleNearnessEnabled=getobstacleNearnessEnabled();
+            obstacleNearnessDistance=getobstacleNearnessDistance();
 		}
 		iter++;
 		if(iter>fps) iter=0;
