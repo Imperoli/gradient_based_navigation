@@ -19,6 +19,7 @@
 		<param name="GUI" value="true" />
 		<param name="attractiveDistanceInfluence_m" value="0.5" />
 		<param name="obstaclesDistanceInfluence_m" value="1.0" />
+		<param name="obstacleNearness" value="true" />
 	</node>
 		
 </launch>

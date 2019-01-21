@@ -71,6 +71,9 @@ int force_scale_tb=500;
 float force_scale=(force_scale_tb/1000.f)/(pixel_robot/2);
 float attr_dist_thresh=.2;
 
+bool obstacleNearness; // if function to remain close to obstacles is enabled
+
+
 int momentum_scale_tb=150;
 float momentum_scale=(momentum_scale_tb/1000.f)/(pixel_robot/2);
 
@@ -141,6 +144,12 @@ float getRepulsiveMomentumScale(){
 	private_nh_ptr->getParam("momentum_scale",scale);
 	//ros::param::get("momentum_scale",scale);
 	return scale/(pixel_robot/2);
+}
+
+bool getObstacleNearness(){
+    bool par;
+    private_nh_ptr->getParam("obstacleNearness",par);
+    return par;
 }
 
 /*** Callback for retrieving attractive Points ***/
@@ -625,6 +634,8 @@ int main(int argc, char **argv)
 	  private_nh_ptr->setParam("force_scale",.4f);
 	if (!private_nh_ptr->hasParam("momentum_scale"))
 	  private_nh_ptr->setParam("momentum_scale",.1f);
+	if (!private_nh_ptr->hasParam("obstacleNearness"))
+	  private_nh_ptr->setParam("obstacleNearness",true);
 
 
 	// Reconfigure settings
@@ -661,7 +672,9 @@ int main(int argc, char **argv)
 	force_scale_tb=(int)(par*1000);
 	private_nh_ptr->getParam("momentum_scale",par);
 	momentum_scale_tb=(int)(par*1000);
-	
+    private_nh_ptr->getParam("obstacleNearness",par);
+    obstacleNearness = par;
+	  
 
     printf("gradient_based_navigation parameters\n");
     printf("  obstaclesDistanceInfluence_m: %.1f (m)\n",(double)distanza_saturazione_cm/100.0);
@@ -670,6 +683,7 @@ int main(int argc, char **argv)
     printf("  max_vel_x: %.1f\n",max_vel_x);
     printf("  max_vel_theta: %.1f\n",max_vel_theta);
     printf("  rate: %.1f\n",fps);
+    printf("  obstacleNearness: %s\n",obstacleNearness?"true":"false");
 
 
 	if (GUI) {
@@ -726,6 +740,7 @@ int main(int argc, char **argv)
 	int iter=0;
 
 	while(ros::ok()){ //n.ok()){
+
         /*** read ros params every fps iterations (1 second) *******************/
 		if (iter==0){
 			private_nh_ptr->getParam("GUI", GUI);
@@ -734,6 +749,7 @@ int main(int argc, char **argv)
 			force_scale=getRepulsiveForceScale();
 			momentum_scale=getRepulsiveMomentumScale();
 			attr_dist_thresh=getattractiveDistanceThreshold();
+            obstacleNearness=getObstacleNearness();
 		}
 		iter++;
 		if(iter>fps) iter=0;
@@ -742,12 +758,12 @@ int main(int argc, char **argv)
 		if (attr_points.size()>0) {
 		  /*** tf *************************/
 		  try{
-			  listener.lookupTransform(laser_frame, map_frame, time_stamp, transform);
-			  }
+            listener.lookupTransform(laser_frame, map_frame, time_stamp, transform);
+		  }
 		  catch (tf::TransformException ex){
-			ROS_ERROR("gradient_based_navigation: %s",ex.what());
-			ROS_ERROR_STREAM("TF from " << laser_frame << "  to " << map_frame);
-			//std::cout<<source_frame<<std::endl;
+            ROS_ERROR("gradient_based_navigation: %s",ex.what());
+            ROS_ERROR_STREAM("TF from " << laser_frame << "  to " << map_frame);
+            //std::cout<<source_frame<<std::endl;
 		  }
 
 		  robot_posx=transform.getOrigin().x();
