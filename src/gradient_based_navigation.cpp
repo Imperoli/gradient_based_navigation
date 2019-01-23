@@ -72,7 +72,7 @@ float force_scale=(force_scale_tb/1000.f)/(pixel_robot/2);
 float attr_dist_thresh=.2;
 
 bool obstacleNearnessEnabled; // if function to remain close to obstacles is enabled
-float  obstacleNearnessDistance = 1.0; // desired distance for obstacle nearness
+float  obstacleNearnessDistance = 0.5; // desired distance for obstacle nearness (in meters)
 
 int momentum_scale_tb=150;
 float momentum_scale=(momentum_scale_tb/1000.f)/(pixel_robot/2);
@@ -360,8 +360,8 @@ void costruisciScanImage(){
 }
 
 
-/*** Function for building the local view image's distance map ***/
-void costruisciDistanceImage(){
+/*** Function for building the stealth local view image's distance map ***/
+void costruisciDistanceImageStealth(){
 	cv::Mat imm2=imm(cv::Range(h/2-(4/resolution),h/2+(4/resolution)), cv::Range(w/2-(4/resolution),w/2+(4/resolution)));
 	cv::distanceTransform( imm2, dist, distType, maskSize );
 	//dist *= 1.f/n_pixel_sat; //1 su n pixel per la saturazione
@@ -372,7 +372,6 @@ void costruisciDistanceImage(){
     float w0 = 30;
     float d0 = obstacleNearnessDistance/resolution;  // LI was 10 
     //float d1 = 30;
-
     //set the parameters for the decrease rate with respect to +Inf
     float wInf = 50;
 
@@ -397,6 +396,32 @@ void costruisciDistanceImage(){
                     //dist.at<float>(i,j) = pheigth * (1/ (1 + expf(exponentplusInf))) * (1/ (1 + expf(-exponentplusInf2)));
                 }
 			//}
+		}
+	}
+
+	if(GUI){	
+		int size2=round(grandezza_robot/resolution);
+		for (int i=-size2/2;i<size2/2;i++){
+			for (int j=-size2/2;j<size2/2;j++){
+				imm.at<uchar>(h/2+i,w/2+j)=100;
+			}
+		}
+	}
+}
+
+/*** Function for building the standard (avoid obstacles) local view image's distance map ***/
+void costruisciDistanceImageStandard(){
+	cv::Mat imm2=imm(cv::Range(h/2-(4/resolution),h/2+(4/resolution)), cv::Range(w/2-(4/resolution),w/2+(4/resolution)));
+	cv::distanceTransform( imm2, dist, distType, maskSize );
+	dist *= 1.f/n_pixel_sat; //1 su n pixel per la saturazione
+	cv::pow(dist, .5, dist);
+    //printf("SONO DENTRO\n");
+	for(int i=0;i<dist.rows;i+=1){
+		for(int j=0;j<dist.cols;j+=1){
+			if(dist.at<float>(i,j)>1.f){
+                
+				dist.at<float>(i,j)=1.f;
+			}
 		}
 	}
 
@@ -790,7 +815,12 @@ int main(int argc, char **argv)
 
 		/*** Building the force field ***/
 		costruisciScanImage();
-		costruisciDistanceImage();
+        if obstacleNearnessEnabled{
+		costruisciDistanceImageStealth();
+        }
+        else{
+        costruisciDistanceImageStandard();
+        }
 		costruisciGradientImage();
 		////
 		costruisciattractiveField();
