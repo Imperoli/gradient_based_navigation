@@ -71,8 +71,8 @@ int force_scale_tb=500;
 float force_scale=(force_scale_tb/1000.f)/(pixel_robot/2);
 float attr_dist_thresh=.2;
 
-bool obstacleNearnessEnabled; // if function to remain close to obstacles is enabled
-float  obstacleNearnessDistance = 0.5; // desired distance for obstacle nearness (in meters)
+bool obstacleNearnessEnabled = false; // if function to remain close to obstacles is enabled
+float obstacleNearnessDistance = 0.5; // desired distance for obstacle nearness (in meters)
 
 int momentum_scale_tb=150;
 float momentum_scale=(momentum_scale_tb/1000.f)/(pixel_robot/2);
@@ -667,9 +667,9 @@ int main(int argc, char **argv)
 	if (!private_nh_ptr->hasParam("momentum_scale"))
 	  private_nh_ptr->setParam("momentum_scale",.1f);
 	if (!private_nh_ptr->hasParam("obstacleNearnessEnabled"))
-	  private_nh_ptr->setParam("obstacleNearnessEnabled",true);
+	  private_nh_ptr->setParam("obstacleNearnessEnabled",obstacleNearnessEnabled);
 	if (!private_nh_ptr->hasParam("obstacleNearnessDistance"))
-	  private_nh_ptr->setParam("obstacleNearnessDistance",1.0);
+	  private_nh_ptr->setParam("obstacleNearnessDistance",obstacleNearnessDistance);
 
 
 	// Reconfigure settings
@@ -706,11 +706,8 @@ int main(int argc, char **argv)
 	force_scale_tb=(int)(par*1000);
 	private_nh_ptr->getParam("momentum_scale",par);
 	momentum_scale_tb=(int)(par*1000);
-    private_nh_ptr->getParam("obstacleNearnessEnabled",par);
-    obstacleNearnessEnabled = par;
-    private_nh_ptr->getParam("obstacleNearnessDistance",par);
-    obstacleNearnessDistance = par;
-	  
+    obstacleNearnessEnabled=getobstacleNearnessEnabled();
+    obstacleNearnessDistance=getobstacleNearnessDistance();
 
     printf("gradient_based_navigation parameters\n");
     printf("  obstaclesDistanceInfluence_m: %.1f (m)\n",(double)distanza_saturazione_cm/100.0);
@@ -815,11 +812,11 @@ int main(int argc, char **argv)
 
 		/*** Building the force field ***/
 		costruisciScanImage();
-        if obstacleNearnessEnabled{
-		costruisciDistanceImageStealth();
+        if (obstacleNearnessEnabled) {
+		  costruisciDistanceImageStealth();
         }
-        else{
-        costruisciDistanceImageStandard();
+        else {
+          costruisciDistanceImageStandard();
         }
 		costruisciGradientImage();
 		////
