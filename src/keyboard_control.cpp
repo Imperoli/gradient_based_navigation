@@ -53,6 +53,8 @@
 #define KEYCODE_X_CAP 0x58
 #define KEYCODE_C_CAP 0x43
 
+ros::NodeHandle *private_nh_ptr;
+
 class ErraticKeyboardTeleopNode
 {
     private:
@@ -68,14 +70,12 @@ class ErraticKeyboardTeleopNode
     public:
         ErraticKeyboardTeleopNode()
         {
+           ros::NodeHandle n_private("~");
            pub_ = n_.advertise<geometry_msgs::Twist>("joystick_cmd_vel", 1);
-		//pub_ = n_.advertise<geometry_msgs::Twist>("mobile_base/commands/velocity", 1);
-            
-            ros::NodeHandle n_private("~");
-            n_private.param("max_vel_x", walk_vel_, 0.5);
-            n_private.param("run_vel_x", run_vel_, 1.0);
-            n_private.param("max_vel_th", yaw_rate_, 1.0);
-            n_private.param("run_vel_th", yaw_rate_run_, 1.5);
+           n_private.param("max_vel_x", walk_vel_, 0.5);
+           n_private.param("run_vel_x", run_vel_, 1.0);
+           n_private.param("max_vel_th", yaw_rate_, 1.0);
+           n_private.param("run_vel_th", yaw_rate_run_, 1.5);
         }
         
         ~ErraticKeyboardTeleopNode() { }
@@ -89,7 +89,7 @@ class ErraticKeyboardTeleopNode
         }
 };
 
-ErraticKeyboardTeleopNode* tbk;
+
 int kfd = 0;
 struct termios cooked, raw;
 bool done;
@@ -98,6 +98,11 @@ bool continuous_push_control_mode = true;
 int main(int argc, char** argv)
 {
     ros::init(argc,argv,"keyboard_control", ros::init_options::AnonymousName | ros::init_options::NoSigintHandler);
+
+  	ros::NodeHandle n;
+	ros::NodeHandle private_nh("~");
+	private_nh_ptr = &private_nh;
+
     ErraticKeyboardTeleopNode tbk;
     
     boost::thread t = boost::thread(boost::bind(&ErraticKeyboardTeleopNode::keyboardLoop, &tbk));
@@ -240,6 +245,7 @@ void ErraticKeyboardTeleopNode::keyboardLoop()
                 speed = 0;
                 turn = 0;
                 break;
+
                 
             default:
                 if (continuous_push_control_mode) {
@@ -249,7 +255,6 @@ void ErraticKeyboardTeleopNode::keyboardLoop()
                     turn = 0;
                     dirty = false;
                 }
-                
 
         }
         

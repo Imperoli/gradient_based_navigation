@@ -227,7 +227,10 @@ bool received_any_input = false;
 void callbackControllerInput(const geometry_msgs::Twist::ConstPtr& msg)
 {	
 	desired_cmd_vel.linear=msg->linear;
-	desired_cmd_vel.angular=msg->angular;
+    if (!obstacleNearnessEnabled)
+	    desired_cmd_vel.angular=msg->angular;
+    else
+	    desired_cmd_vel.angular.z=0;
 	last_input_msg_time = ros::Time::now();
 	if(!received_any_input){ //this is verified only the first time it receives a message
 		ROS_INFO("Received first controller input - joystick is temporaly disabled");
