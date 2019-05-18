@@ -76,7 +76,8 @@ void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
     if ((fabs(vel.linear.x)<1e-3) && (fabs(vel.angular.z)<1e-3)) {
         vel.linear.x = 0;
         vel.angular.z = 0;
-        cnt_zero++;
+        if (cnt_zero<1000)  // to avoid overflow
+            cnt_zero++;
     }
     else
         cnt_zero = 0;
