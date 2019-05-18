@@ -83,9 +83,7 @@ void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
 
     // cout << " -- " << vel.linear.x << " " << vel.angular.z << " " << cnt_zero << endl;
 
-    if (cnt_zero<10) // don't publish 0,0 more than 10 times
-    	pub.publish(vel);
-	
+
 	if(msg->buttons[LOGITECH_BUTTON_RB]) {
 	  ROS_WARN("!!!Emergency Stop!!!");
 	  ros::param::set("emergency_stop", 1);
@@ -122,12 +120,13 @@ int main(int argc, char **argv)
     ros::Subscriber joy_sub = n.subscribe<sensor_msgs::Joy>("joy", 1, joyCallback);
     //ros::spin();
 
-    int fps=100;
+    int fps=50;
     ros::Rate loop_rate(fps);
     ros::AsyncSpinner spinner(1); // n threads
     spinner.start();
-    while(n.ok()){		
-        //   pub.publish(vel);
+    while(n.ok()){
+        if (cnt_zero<10) // don't publish 0,0 more than 10 times
+        	pub.publish(vel);  // always publish (to avoid interrupts when joy does not publish non-changing values
         loop_rate.sleep();
     }
 
