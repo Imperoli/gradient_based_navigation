@@ -1,17 +1,22 @@
+#include <math.h>
+#include <vector>
+
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
 #include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/Twist.h>
-#include "opencv2/core/core.hpp"
-#include <math.h>
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
 #include <geometry_msgs/Polygon.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <nav_msgs/Path.h>
 
 #include <dynamic_reconfigure/server.h>
-#include <gradient_based_navigation/GradientBasedNavigationConfig.h>
 
+#include "opencv2/core/core.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+
+#include <gradient_based_navigation/GradientBasedNavigationConfig.h>
 
 
 
@@ -93,8 +98,20 @@ ros::Time last_laser_msg_time;
 ros::Time last_input_msg_time;
 double MAX_MSG_DELAY=2.0; // (sec) Max delay from input or laser after which the robot is stopped.
 
+float last_cmdvel_x, last_cmdvel_th; // last cmdvel messages sent
+
+ros::Time last_movement = ros::Time(0); // last time robot moved
+ros::Time last_stuck = ros::Time(0); // last time robot was stuck
+bool stuck_recovery = false;
+int stuck_trigger = 10; // seconds
+int stuck_timeout = 5; // seconds
 
 ros::NodeHandle *private_nh_ptr;
+
+
+
+bool checkRobotStuck();
+
 
 
 void parseCmdLine(int argc, char** argv){
@@ -222,16 +239,32 @@ void callbackJoystickInput(const geometry_msgs::Twist::ConstPtr& msg)
 	//std::cout << "Received joystick " << joy_command_vel.linear.x << std::endl;
 }
 
+
+
 bool received_any_input = false;
+
 /*** Callback for retrieving the high level controller output***/
 void callbackControllerInput(const geometry_msgs::Twist::ConstPtr& msg)
 {	
 	desired_cmd_vel.linear=msg->linear;
-    if (!obstacleNearnessEnabled)
-	    desired_cmd_vel.angular=msg->angular;
-    else
+    desired_cmd_vel.angular=msg->angular;
+
+    if (obstacleNearnessEnabled)
 	    desired_cmd_vel.angular.z=0;
-	last_input_msg_time = ros::Time::now();
+
+    ros::Time tm = ros::Time::now();
+
+    if (tm.sec - last_input_msg_time.sec > 2)
+        last_movement = tm; // reset last_movement to restart counter after a while the robot was not moving
+
+    if (checkRobotStuck()) {
+        // printf("robot stuck!!! - recovery...\n");
+        desired_cmd_vel.angular.z = 0;
+        if (desired_cmd_vel.linear.x<0.1) desired_cmd_vel.linear.x=0.1;
+    }
+
+
+	last_input_msg_time = tm;
 	if(!received_any_input){ //this is verified only the first time it receives a message
 		ROS_INFO("Received first controller input - joystick is temporaly disabled");
 		received_any_input = true;
@@ -606,14 +639,14 @@ void callbackReconfigure(gradient_based_navigation::GradientBasedNavigationConfi
 
     // distanza_saturazione_attr_cm = config.attractive_distance_influence;
     // distanza_saturazione_attr = distanza_saturazione_attr_cm/100.f;
-	distanza_saturazione_attr = config.attractive_distance_influence;
+	distanza_saturazione_attr = config.attractiveDistanceInfluence_m;
     n_pixel_sat_attr=(distanza_saturazione_attr)/resolution;
     private_nh_ptr->setParam("attractiveDistanceInfluence_m",distanza_saturazione_attr);
     ROS_INFO("attractive_distance_influence: %f", distanza_saturazione_attr);
 
 	// distanza_saturazione_cm = config.obstacle_distance_influence;
     // distanza_saturazione = distanza_saturazione_cm/100.f;
-	distanza_saturazione = config.obstacle_distance_influence;
+	distanza_saturazione = config.obstaclesDistanceInfluence_m;
     n_pixel_sat=(distanza_saturazione)/resolution;
     private_nh_ptr->setParam("obstaclesDistanceInfluence_m",distanza_saturazione);
     ROS_INFO("obstacle_distance_influence: %f", distanza_saturazione);
@@ -638,6 +671,65 @@ void callbackReconfigure(gradient_based_navigation::GradientBasedNavigationConfi
 
 }
 
+// Last time a path has been seen
+int last_path_time = 0; // sec of ros::Time 
+
+
+void cbPath(const nav_msgs::Path::ConstPtr& msg) {
+// Check if a path is being followed by a path planner
+
+    std::vector<geometry_msgs::PoseStamped> v = msg->poses;
+    ros::Time tm = msg->header.stamp;
+    last_path_time = tm.sec; 
+    // printf("  -- path size %lu at %d\n",v.size(), tm.sec);
+
+}
+
+
+// robot stuck if path to be reached and cmd_vel is zero
+bool checkRobotStuck() {
+
+  ros::Time tm = ros::Time::now();
+
+  // first time set last_* values
+  if (last_movement.sec==0) {
+    last_movement = ros::Time::now();
+    last_stuck = ros::Time::now();
+  }
+
+  if (stuck_recovery) { 
+    if ((tm.sec-last_stuck.sec)<stuck_timeout)
+      return true;
+    else {
+      stuck_recovery = false;
+      last_movement = tm;
+    }
+  }
+
+  //if (tm.sec-last_movement.sec>5)
+  //  printf("  ++ [%2d] vel %.3f %.3f\n", tm.sec-last_movement.sec, last_cmdvel_x, last_cmdvel_th);
+
+  // check cmd vel
+  if ((fabs(last_cmdvel_x)>0.01) || (fabs(last_cmdvel_th)>0.4)) {
+    last_movement = tm;
+    return false;
+  }
+
+  // check path
+  if (tm.sec - last_path_time>1) {
+    return false;
+  }
+
+  if ((tm.sec-last_movement.sec)<stuck_trigger) {
+    return false;
+  }
+
+  last_stuck = tm;
+  stuck_recovery = true;
+  return true;
+
+}
+
 
 int main(int argc, char **argv)
 {
@@ -658,6 +750,8 @@ int main(int argc, char **argv)
 	ros::Subscriber sub = n.subscribe("base_scan", 1, callbackSensore);
 
 	ros::Subscriber sub4 = n.subscribe("attractive_points", 1, callbackattractivePoints);
+
+	ros::Subscriber sub5 = n.subscribe("path", 1, cbPath);
 
 	if (!private_nh_ptr->hasParam("attractiveDistanceThreshold_m"))
 	  private_nh_ptr->setParam("attractiveDistanceThreshold_m",attr_dist_thresh);
@@ -963,7 +1057,11 @@ int main(int argc, char **argv)
 
     command_vel.linear.x = current_linear_vel;
 	command_vel.angular.z = current_ang_vel;
-	pub.publish(command_vel);
+	
+    last_cmdvel_x = command_vel.linear.x;  // last cmdvel messages sent
+    last_cmdvel_th = command_vel.angular.z;
+
+    pub.publish(command_vel);
 	/********************************************************************************/
 
 		
