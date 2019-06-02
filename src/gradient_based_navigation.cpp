@@ -116,51 +116,51 @@ bool checkRobotStuck();
 
 void parseCmdLine(int argc, char** argv){
     float sizer=20;
-	if (argc>1){
-		sizer=atof(argv[1]);
-		if (sizer>400||sizer<10){
-			sizer=80;
-		}
-	}
-	grandezza_robot=sizer/100.f;
-	pixel_robot=(grandezza_robot/resolution)*(grandezza_robot/resolution);
-	sizematforze=round(grandezza_robot/resolution);
-	matriceForze=cv::Mat(sizematforze,sizematforze,CV_32FC3);
+    if (argc>1){
+        sizer=atof(argv[1]);
+        if (sizer>400||sizer<10){
+            sizer=80;
+        }
+    }
+    grandezza_robot=sizer/100.f;
+    pixel_robot=(grandezza_robot/resolution)*(grandezza_robot/resolution);
+    sizematforze=round(grandezza_robot/resolution);
+    matriceForze=cv::Mat(sizematforze,sizematforze,CV_32FC3);
 }
 
 float getattractiveDistanceThreshold(){
-	double dist_thresh;
-	private_nh_ptr->getParam("attractiveDistanceThreshold_m",dist_thresh);
+    double dist_thresh;
+    private_nh_ptr->getParam("attractiveDistanceThreshold_m",dist_thresh);
     //ros::param::get("attractiveDistanceThreshold_m",dist_thresh);
-	return dist_thresh;
+    return dist_thresh;
 }
 
 float getNumPixelSaturazioneattrazione(){
-	double dist_sat;
-	private_nh_ptr->getParam("attractiveDistanceInfluence_m",dist_sat);
-	//ros::param::get("attractiveDistanceInfluence_m",dist_sat);
-	return dist_sat/resolution;
+    double dist_sat;
+    private_nh_ptr->getParam("attractiveDistanceInfluence_m",dist_sat);
+    //ros::param::get("attractiveDistanceInfluence_m",dist_sat);
+    return dist_sat/resolution;
 }
 
 float getNumPixelSaturazione(){
-	double dist_sat;
-	private_nh_ptr->getParam("obstaclesDistanceInfluence_m",dist_sat);
-	//ros::param::get("obstaclesDistanceInfluence_m",dist_sat);
-	return dist_sat/resolution;
+    double dist_sat;
+    private_nh_ptr->getParam("obstaclesDistanceInfluence_m",dist_sat);
+    //ros::param::get("obstaclesDistanceInfluence_m",dist_sat);
+    return dist_sat/resolution;
 }
 
 float getRepulsiveForceScale(){
-	double scale;
-	private_nh_ptr->getParam("force_scale",scale);
-	//ros::param::get("force_scale",scale);
-	return scale/(pixel_robot/2);
+    double scale;
+    private_nh_ptr->getParam("force_scale",scale);
+    //ros::param::get("force_scale",scale);
+    return scale/(pixel_robot/2);
 }
 
 float getRepulsiveMomentumScale(){
-	double scale;
-	private_nh_ptr->getParam("momentum_scale",scale);
-	//ros::param::get("momentum_scale",scale);
-	return scale/(pixel_robot/2);
+    double scale;
+    private_nh_ptr->getParam("momentum_scale",scale);
+    //ros::param::get("momentum_scale",scale);
+    return scale/(pixel_robot/2);
 }
 
 bool getobstacleNearnessEnabled(){
@@ -178,9 +178,9 @@ float getobstacleNearnessDistance(){
 
 /*** Callback for retrieving attractive Points ***/
 void callbackattractivePoints(const geometry_msgs::Polygon::ConstPtr& msg)
-{	
-	attr_points.clear();
-	attr_points=msg->points;
+{    
+    attr_points.clear();
+    attr_points=msg->points;
 }
 
 bool stoppedForCloseObject = false;
@@ -191,52 +191,52 @@ void very_close_obstacle_check() {
     int cnt=0, dim=60, step=2;
     for (int i=size/2-(dim/2)*step; i<size/2+(dim/2)*step; i+=step)
       if (ranges[i]<0.2)
-		cnt++;
+        cnt++;
     //std::cout << "Closeness " << cnt << std::endl;
     double very_close_obstacle = (double)cnt/dim;
     if (very_close_obstacle>0.5) {
-		ROS_WARN("Very close obstacle: stopping the robot");
-		last_close_object_time = ros::Time::now();
-		ros::param::set("emergency_stop", 1);
-		stoppedForCloseObject = true;
+        ROS_WARN("Very close obstacle: stopping the robot");
+        last_close_object_time = ros::Time::now();
+        ros::param::set("emergency_stop", 1);
+        stoppedForCloseObject = true;
     }
     else if(stoppedForCloseObject){
-		double delta_time = (ros::Time::now()-last_close_object_time).toSec();
-		if(delta_time>CLOSE_DETECTION_RESET_TIME){
-			ROS_INFO("%g seconds have passed without finding close obstacles, will re-enable movement",CLOSE_DETECTION_RESET_TIME);
-			stoppedForCloseObject=false;
-			ros::param::set("emergency_stop", 0);
-		}
+        double delta_time = (ros::Time::now()-last_close_object_time).toSec();
+        if(delta_time>CLOSE_DETECTION_RESET_TIME){
+            ROS_INFO("%g seconds have passed without finding close obstacles, will re-enable movement",CLOSE_DETECTION_RESET_TIME);
+            stoppedForCloseObject=false;
+            ros::param::set("emergency_stop", 0);
+        }
     }
 }
 
 
 /*** Callback for retrieving the laser scan ***/
 void callbackSensore(const sensor_msgs::LaserScan::ConstPtr& msg)
-{	
+{    
   if (!laser_ready) {
     laser_ready=true;
     std::cout << "GradientBasedNavigation:: laser data ready!!!" << std::endl;
   }
-	size=msg->ranges.size();
-	angle_min=msg->angle_min;
-	angle_incr=msg->angle_increment;
-	time_stamp=msg->header.stamp;
-	range_scan_min=msg->range_min;
-	range_scan_max=msg->range_max;
-	ranges=msg->ranges;
-	last_laser_msg_time = time_stamp; //ros::Time::now();
-	very_close_obstacle_check();
+    size=msg->ranges.size();
+    angle_min=msg->angle_min;
+    angle_incr=msg->angle_increment;
+    time_stamp=msg->header.stamp;
+    range_scan_min=msg->range_min;
+    range_scan_max=msg->range_max;
+    ranges=msg->ranges;
+    last_laser_msg_time = time_stamp; //ros::Time::now();
+    very_close_obstacle_check();
 }
 
 
 /*** Callback for retrieving the joystick data ***/
 void callbackJoystickInput(const geometry_msgs::Twist::ConstPtr& msg)
-{	
-	joy_command_vel.linear=msg->linear;
-	joy_command_vel.angular=msg->angular;
-	//last_input_msg_time = ros::Time::now();
-	//std::cout << "Received joystick " << joy_command_vel.linear.x << std::endl;
+{    
+    joy_command_vel.linear=msg->linear;
+    joy_command_vel.angular=msg->angular;
+    //last_input_msg_time = ros::Time::now();
+    //std::cout << "Received joystick " << joy_command_vel.linear.x << std::endl;
 }
 
 
@@ -245,12 +245,12 @@ bool received_any_input = false;
 
 /*** Callback for retrieving the high level controller output***/
 void callbackControllerInput(const geometry_msgs::Twist::ConstPtr& msg)
-{	
-	desired_cmd_vel.linear=msg->linear;
+{    
+    desired_cmd_vel.linear=msg->linear;
     desired_cmd_vel.angular=msg->angular;
 
     if (obstacleNearnessEnabled)
-	    desired_cmd_vel.angular.z=0;
+        desired_cmd_vel.angular.z=0;
 
     ros::Time tm = ros::Time::now();
 
@@ -264,15 +264,15 @@ void callbackControllerInput(const geometry_msgs::Twist::ConstPtr& msg)
     }
 
 
-	last_input_msg_time = tm;
-	if(!received_any_input){ //this is verified only the first time it receives a message
-		ROS_INFO("Received first controller input - joystick is temporaly disabled");
-		received_any_input = true;
-	}
+    last_input_msg_time = tm;
+    if(!received_any_input){ //this is verified only the first time it receives a message
+        ROS_INFO("Received first controller input - joystick is temporaly disabled");
+        received_any_input = true;
+    }
 }
 
 bool robot_was_moving(){
-	return !((desired_cmd_vel.linear.x==0) && (desired_cmd_vel.angular.z == 0));
+    return !((desired_cmd_vel.linear.x==0) && (desired_cmd_vel.angular.z == 0));
 }
 
 double delay_last_input() {
@@ -289,119 +289,119 @@ double delay_last_laser() {
 
 
 void costruisciattractiveField(){
-	float posx=0; float posy=0; int indx=0; int indy=0; float rx=0; float ry=0;
-	intensity=0;
-	cv::Mat imm2,dist_temp,matriceForzeattr_temp,robot_grad_attr_temp;
-	dist_attr=cv::Mat::zeros(8/resolution,8/resolution,CV_32FC1);
-	matriceForzeattr=cv::Mat::zeros(sizematforze,sizematforze,CV_32FC3);
-	robot_grad_attr=cv::Mat::zeros(h/2,w/2,CV_8UC1);
+    float posx=0; float posy=0; int indx=0; int indy=0; float rx=0; float ry=0;
+    intensity=0;
+    cv::Mat imm2,dist_temp,matriceForzeattr_temp,robot_grad_attr_temp;
+    dist_attr=cv::Mat::zeros(8/resolution,8/resolution,CV_32FC1);
+    matriceForzeattr=cv::Mat::zeros(sizematforze,sizematforze,CV_32FC3);
+    robot_grad_attr=cv::Mat::zeros(h/2,w/2,CV_8UC1);
 
-	for(int i = 0; i < attr_points.size(); i++){
-		imm_attr = cv::Scalar(255);
-		matriceForzeattr_temp=cv::Mat::zeros(sizematforze,sizematforze,CV_32FC3);
-		robot_grad_attr_temp=cv::Mat::zeros(robot_grad_attr.size(),robot_grad_attr.type());		
-		//posx=attr_points[i].x;
-		//posy=attr_points[i].y;
-		posx=-attr_points[i].y*sin(robot_orient)+attr_points[i].x*cos(robot_orient)+robot_posx;
-		posy=(attr_points[i].x*sin(robot_orient)+attr_points[i].y*cos(robot_orient))+robot_posy;
-		indy=-((posy/resolution)-h/2);
-		indx=(-(posx/resolution)+w/2);
+    for(int i = 0; i < attr_points.size(); i++){
+        imm_attr = cv::Scalar(255);
+        matriceForzeattr_temp=cv::Mat::zeros(sizematforze,sizematforze,CV_32FC3);
+        robot_grad_attr_temp=cv::Mat::zeros(robot_grad_attr.size(),robot_grad_attr.type());        
+        //posx=attr_points[i].x;
+        //posy=attr_points[i].y;
+        posx=-attr_points[i].y*sin(robot_orient)+attr_points[i].x*cos(robot_orient)+robot_posx;
+        posy=(attr_points[i].x*sin(robot_orient)+attr_points[i].y*cos(robot_orient))+robot_posy;
+        indy=-((posy/resolution)-h/2);
+        indx=(-(posx/resolution)+w/2);
 
-		if(indy>=0&&indy<h&&indx>=0&&indx<w){
-			if(GUI){
-				int size2=5;
-				for (int k=-size2/2;k<size2/2;k++){
-					for (int k2=-size2/2;k2<size2/2;k2++){
-						imm.at<uchar>(indx+k,indy+k2)=50;
-					}
-				}
-			}	
-			imm_attr.at<uchar>(indx,indy)=0;
-			imm2=imm_attr(cv::Range(h/2-(4/resolution),h/2+(4/resolution)), cv::Range(w/2-(4/resolution),w/2+(4/resolution)));
-			cv::distanceTransform( imm2, dist_temp, distType, maskSize );
-			intensity=attr_points[i].z;
+        if(indy>=0&&indy<h&&indx>=0&&indx<w){
+            if(GUI){
+                int size2=5;
+                for (int k=-size2/2;k<size2/2;k++){
+                    for (int k2=-size2/2;k2<size2/2;k2++){
+                        imm.at<uchar>(indx+k,indy+k2)=50;
+                    }
+                }
+            }    
+            imm_attr.at<uchar>(indx,indy)=0;
+            imm2=imm_attr(cv::Range(h/2-(4/resolution),h/2+(4/resolution)), cv::Range(w/2-(4/resolution),w/2+(4/resolution)));
+            cv::distanceTransform( imm2, dist_temp, distType, maskSize );
+            intensity=attr_points[i].z;
 
-			dist_temp *= 1.f/(n_pixel_sat_attr); //1 su n pixel per la saturazione
-			//cv::pow(dist_temp, .5, dist_temp);
-			for(int i=0;i<dist_temp.rows;i+=1){
-				for(int j=0;j<dist_temp.cols;j+=1){
-					if(dist_temp.at<float>(i,j)>1){
-						dist_temp.at<float>(i,j)=1;
-					}
-				}
-			}
+            dist_temp *= 1.f/(n_pixel_sat_attr); //1 su n pixel per la saturazione
+            //cv::pow(dist_temp, .5, dist_temp);
+            for(int i=0;i<dist_temp.rows;i+=1){
+                for(int j=0;j<dist_temp.cols;j+=1){
+                    if(dist_temp.at<float>(i,j)>1){
+                        dist_temp.at<float>(i,j)=1;
+                    }
+                }
+            }
 
-			cv::Mat abs_grad_x, abs_grad_y;
-			cv::Scharr( dist_temp, grad_x, ddepth, 1, 0, scale, delta, cv::BORDER_DEFAULT );
-			cv::convertScaleAbs( grad_x, abs_grad_x );
-			cv::Scharr( dist_temp, grad_y, ddepth, 0, 1, scale, delta, cv::BORDER_DEFAULT );
-			cv::convertScaleAbs( grad_y, abs_grad_y );
-			cv::addWeighted( abs_grad_x, 0.5, abs_grad_y, 0.5, 0, grad );
+            cv::Mat abs_grad_x, abs_grad_y;
+            cv::Scharr( dist_temp, grad_x, ddepth, 1, 0, scale, delta, cv::BORDER_DEFAULT );
+            cv::convertScaleAbs( grad_x, abs_grad_x );
+            cv::Scharr( dist_temp, grad_y, ddepth, 0, 1, scale, delta, cv::BORDER_DEFAULT );
+            cv::convertScaleAbs( grad_y, abs_grad_y );
+            cv::addWeighted( abs_grad_x, 0.5, abs_grad_y, 0.5, 0, grad );
 
-			cv::Mat grad_x_rid=grad_x(cv::Range(grad_x.rows/2-(sizematforze)/2,grad_x.rows/2+(sizematforze)/2), cv::Range(grad_x.cols/2-(sizematforze)/2,grad_x.cols/2+(sizematforze)/2));
-			cv::Mat grad_y_rid=grad_y(cv::Range(grad_y.rows/2-(sizematforze)/2,grad_y.rows/2+(sizematforze)/2), cv::Range(grad_y.cols/2-(sizematforze)/2,grad_y.cols/2+(sizematforze)/2));
-	
-			/// costruzione matrice forze
-			for(int i=0;i<sizematforze;i++){
-				for(int j=0;j<sizematforze;j++){
-					matriceForzeattr_temp.at<cv::Vec3f>(i,j)=cv::Vec3f(grad_x_rid.at<short>(i,j),grad_y_rid.at<short>(i,j),0)*intensity;
-				}
-			}
-			cv::Mat gradrid=grad(cv::Range(grad.rows/2-(sizematforze)/2,grad.rows/2+(sizematforze)/2), cv::Range(grad.cols/2-(sizematforze)/2,grad.cols/2+(sizematforze)/2));	
-			cv::resize(gradrid, robot_grad_attr_temp, cv::Size(h/2,w/2), 0, 0,cv::INTER_LINEAR);
+            cv::Mat grad_x_rid=grad_x(cv::Range(grad_x.rows/2-(sizematforze)/2,grad_x.rows/2+(sizematforze)/2), cv::Range(grad_x.cols/2-(sizematforze)/2,grad_x.cols/2+(sizematforze)/2));
+            cv::Mat grad_y_rid=grad_y(cv::Range(grad_y.rows/2-(sizematforze)/2,grad_y.rows/2+(sizematforze)/2), cv::Range(grad_y.cols/2-(sizematforze)/2,grad_y.cols/2+(sizematforze)/2));
+    
+            /// costruzione matrice forze
+            for(int i=0;i<sizematforze;i++){
+                for(int j=0;j<sizematforze;j++){
+                    matriceForzeattr_temp.at<cv::Vec3f>(i,j)=cv::Vec3f(grad_x_rid.at<short>(i,j),grad_y_rid.at<short>(i,j),0)*intensity;
+                }
+            }
+            cv::Mat gradrid=grad(cv::Range(grad.rows/2-(sizematforze)/2,grad.rows/2+(sizematforze)/2), cv::Range(grad.cols/2-(sizematforze)/2,grad.cols/2+(sizematforze)/2));    
+            cv::resize(gradrid, robot_grad_attr_temp, cv::Size(h/2,w/2), 0, 0,cv::INTER_LINEAR);
 
-			robot_grad_attr+=robot_grad_attr_temp;
-			matriceForzeattr+=matriceForzeattr_temp;
-			dist_attr=dist_attr+dist_temp;
+            robot_grad_attr+=robot_grad_attr_temp;
+            matriceForzeattr+=matriceForzeattr_temp;
+            dist_attr=dist_attr+dist_temp;
 
-			float dist_=sqrt(posx*posx+posy*posy);
-			if(dist_<=attr_dist_thresh){
-				//attr_points.erase(attr_points.begin()+i);
-				//i--;
-				robot_grad_attr-=robot_grad_attr_temp;
-				matriceForzeattr-=matriceForzeattr_temp;
-				dist_attr=dist_attr-dist_temp;		
-			}
-		}
-	}
+            float dist_=sqrt(posx*posx+posy*posy);
+            if(dist_<=attr_dist_thresh){
+                //attr_points.erase(attr_points.begin()+i);
+                //i--;
+                robot_grad_attr-=robot_grad_attr_temp;
+                matriceForzeattr-=matriceForzeattr_temp;
+                dist_attr=dist_attr-dist_temp;        
+            }
+        }
+    }
 }
 
 /*** Function for building the local view image ***/
 void costruisciScanImage(){
-	imm = cv::Scalar(255);
-	posx=0; posy=0; indx=0; indy=0;
-	cv::Point oldp(-1,-1);
-	cv::Point newp;
-	
-	for(int i = 0; i < size; i++){
-		
-		if(ranges[i]>range_scan_min&&ranges[i]<range_scan_max){
-			posx=ranges[i]*cos(angle_min+((float)(i)*angle_incr));
-			posy=ranges[i]*sin(angle_min+((float)(i)*angle_incr));
-			indy=-((posy/resolution)-h/2);
-			indx=(-(posx/resolution)+w/2);
+    imm = cv::Scalar(255);
+    posx=0; posy=0; indx=0; indy=0;
+    cv::Point oldp(-1,-1);
+    cv::Point newp;
+    
+    for(int i = 0; i < size; i++){
+        
+        if(ranges[i]>range_scan_min&&ranges[i]<range_scan_max){
+            posx=ranges[i]*cos(angle_min+((float)(i)*angle_incr));
+            posy=ranges[i]*sin(angle_min+((float)(i)*angle_incr));
+            indy=-((posy/resolution)-h/2);
+            indx=(-(posx/resolution)+w/2);
 
-			newp.x=indy; newp.y=indx;
-			if(oldp.x>=0&&oldp.y>=0&&oldp.x<w&&oldp.y<h){
-				if((indx!=h/2||indy!=w/2)&&indx>=0&&indx<w && indy>=0&&indy<h&&(oldp.x!=h/2||oldp.y!=w/2)){
-					cv::line(imm,oldp,newp,cv::Scalar(0));
-					
-				}
-			}
-			oldp=newp;
-		}else{
-			oldp.x=-1; oldp.y=-1;
-		}
-	}
+            newp.x=indy; newp.y=indx;
+            if(oldp.x>=0&&oldp.y>=0&&oldp.x<w&&oldp.y<h){
+                if((indx!=h/2||indy!=w/2)&&indx>=0&&indx<w && indy>=0&&indy<h&&(oldp.x!=h/2||oldp.y!=w/2)){
+                    cv::line(imm,oldp,newp,cv::Scalar(0));
+                    
+                }
+            }
+            oldp=newp;
+        }else{
+            oldp.x=-1; oldp.y=-1;
+        }
+    }
 }
 
 
 /*** Function for building the stealth local view image's distance map ***/
 void costruisciDistanceImageStealth(){
-	cv::Mat imm2=imm(cv::Range(h/2-(4/resolution),h/2+(4/resolution)), cv::Range(w/2-(4/resolution),w/2+(4/resolution)));
-	cv::distanceTransform( imm2, dist, distType, maskSize );
-	//dist *= 1.f/n_pixel_sat; //1 su n pixel per la saturazione
-	//cv::pow(dist, .5, dist);
+    cv::Mat imm2=imm(cv::Range(h/2-(4/resolution),h/2+(4/resolution)), cv::Range(w/2-(4/resolution),w/2+(4/resolution)));
+    cv::distanceTransform( imm2, dist, distType, maskSize );
+    //dist *= 1.f/n_pixel_sat; //1 su n pixel per la saturazione
+    //cv::pow(dist, .5, dist);
     
     //set the parameters for the pick (translation d0 and decrease rate with respect to 0)
     float pheigth = 2;
@@ -411,10 +411,10 @@ void costruisciDistanceImageStealth(){
     //set the parameters for the decrease rate with respect to +Inf
     float wInf = 50;
 
-	for(int i=0;i<dist.rows;i+=1){
-		for(int j=0;j<dist.cols;j+=1){
-			//if(dist.at<float>(i,j)>1.f){
-				//dist.at<float>(i,j)=1.f;
+    for(int i=0;i<dist.rows;i+=1){
+        for(int j=0;j<dist.cols;j+=1){
+            //if(dist.at<float>(i,j)>1.f){
+                //dist.at<float>(i,j)=1.f;
                 
   
                 float dist_elem = dist.at<float>(i,j);
@@ -431,201 +431,201 @@ void costruisciDistanceImageStealth(){
                     dist.at<float>(i,j) = pheigth * expf(exponent);
                     //dist.at<float>(i,j) = pheigth * (1/ (1 + expf(exponentplusInf))) * (1/ (1 + expf(-exponentplusInf2)));
                 }
-			//}
-		}
-	}
+            //}
+        }
+    }
 
-	if(GUI){	
-		int size2=round(grandezza_robot/resolution);
-		for (int i=-size2/2;i<size2/2;i++){
-			for (int j=-size2/2;j<size2/2;j++){
-				imm.at<uchar>(h/2+i,w/2+j)=100;
-			}
-		}
-	}
+    if(GUI){    
+        int size2=round(grandezza_robot/resolution);
+        for (int i=-size2/2;i<size2/2;i++){
+            for (int j=-size2/2;j<size2/2;j++){
+                imm.at<uchar>(h/2+i,w/2+j)=100;
+            }
+        }
+    }
 }
 
 /*** Function for building the standard (avoid obstacles) local view image's distance map ***/
 void costruisciDistanceImageStandard(){
-	cv::Mat imm2=imm(cv::Range(h/2-(4/resolution),h/2+(4/resolution)), cv::Range(w/2-(4/resolution),w/2+(4/resolution)));
-	cv::distanceTransform( imm2, dist, distType, maskSize );
-	dist *= 1.f/n_pixel_sat; //1 su n pixel per la saturazione
-	cv::pow(dist, .5, dist);
+    cv::Mat imm2=imm(cv::Range(h/2-(4/resolution),h/2+(4/resolution)), cv::Range(w/2-(4/resolution),w/2+(4/resolution)));
+    cv::distanceTransform( imm2, dist, distType, maskSize );
+    dist *= 1.f/n_pixel_sat; //1 su n pixel per la saturazione
+    cv::pow(dist, .5, dist);
     //printf("SONO DENTRO\n");
-	for(int i=0;i<dist.rows;i+=1){
-		for(int j=0;j<dist.cols;j+=1){
-			if(dist.at<float>(i,j)>1.f){
+    for(int i=0;i<dist.rows;i+=1){
+        for(int j=0;j<dist.cols;j+=1){
+            if(dist.at<float>(i,j)>1.f){
                 
-				dist.at<float>(i,j)=1.f;
-			}
-		}
-	}
+                dist.at<float>(i,j)=1.f;
+            }
+        }
+    }
 
-	if(GUI){	
-		int size2=round(grandezza_robot/resolution);
-		for (int i=-size2/2;i<size2/2;i++){
-			for (int j=-size2/2;j<size2/2;j++){
-				imm.at<uchar>(h/2+i,w/2+j)=100;
-			}
-		}
-	}
+    if(GUI){    
+        int size2=round(grandezza_robot/resolution);
+        for (int i=-size2/2;i<size2/2;i++){
+            for (int j=-size2/2;j<size2/2;j++){
+                imm.at<uchar>(h/2+i,w/2+j)=100;
+            }
+        }
+    }
 }
 
 
 /*** Function for building gradient map ***/
 void costruisciGradientImage(){
 
-	/// Generate grad_x and grad_y
-	cv::Mat abs_grad_x, abs_grad_y;
+    /// Generate grad_x and grad_y
+    cv::Mat abs_grad_x, abs_grad_y;
 
-	/// Gradient X
-	cv::Scharr( dist, grad_x, ddepth, 1, 0, scale, delta, cv::BORDER_DEFAULT );
-	//Sobel( src_gray, grad_x, ddepth, 1, 0, 3, scale, delta, BORDER_DEFAULT );
-	cv::convertScaleAbs( grad_x, abs_grad_x );
+    /// Gradient X
+    cv::Scharr( dist, grad_x, ddepth, 1, 0, scale, delta, cv::BORDER_DEFAULT );
+    //Sobel( src_gray, grad_x, ddepth, 1, 0, 3, scale, delta, BORDER_DEFAULT );
+    cv::convertScaleAbs( grad_x, abs_grad_x );
 
-	/// Gradient Y
-	cv::Scharr( dist, grad_y, ddepth, 0, 1, scale, delta, cv::BORDER_DEFAULT );
-	//Sobel( src_gray, grad_y, ddepth, 0, 1, 3, scale, delta, BORDER_DEFAULT );
-	cv::convertScaleAbs( grad_y, abs_grad_y );
+    /// Gradient Y
+    cv::Scharr( dist, grad_y, ddepth, 0, 1, scale, delta, cv::BORDER_DEFAULT );
+    //Sobel( src_gray, grad_y, ddepth, 0, 1, 3, scale, delta, BORDER_DEFAULT );
+    cv::convertScaleAbs( grad_y, abs_grad_y );
 
-	/// Total Gradient (approximate)
-	cv::addWeighted( abs_grad_x, 0.5, abs_grad_y, 0.5, 0, grad );
-	
-	cv::Mat grad_x_rid=grad_x(cv::Range(grad_x.rows/2-(sizematforze)/2,grad_x.rows/2+(sizematforze)/2), cv::Range(grad_x.cols/2-(sizematforze)/2,grad_x.cols/2+(sizematforze)/2));
-	cv::Mat grad_y_rid=grad_y(cv::Range(grad_y.rows/2-(sizematforze)/2,grad_y.rows/2+(sizematforze)/2), cv::Range(grad_y.cols/2-(sizematforze)/2,grad_y.cols/2+(sizematforze)/2));
-	
-	/// costruzione matrice forze
-	for(int i=0;i<sizematforze;i++){
-		for(int j=0;j<sizematforze;j++){
-			matriceForze.at<cv::Vec3f>(i,j)=cv::Vec3f(grad_x_rid.at<short>(i,j),grad_y_rid.at<short>(i,j),0);
-		}
-	}
-	cv::Mat gradrid=grad(cv::Range(grad.rows/2-(sizematforze)/2,grad.rows/2+(sizematforze)/2), cv::Range(grad.cols/2-(sizematforze)/2,grad.cols/2+(sizematforze)/2));	
-	cv::resize(gradrid, robot_grad, cv::Size(h/2,w/2), 0, 0,cv::INTER_LINEAR);
-	cv::resize(dist, dist_ridotta, cv::Size(h/2,w/2), 0, 0,cv::INTER_LINEAR);
-	dist_ridotta*=255;
-	dist_ridotta.convertTo(dist_ridotta,CV_8UC1);
+    /// Total Gradient (approximate)
+    cv::addWeighted( abs_grad_x, 0.5, abs_grad_y, 0.5, 0, grad );
+    
+    cv::Mat grad_x_rid=grad_x(cv::Range(grad_x.rows/2-(sizematforze)/2,grad_x.rows/2+(sizematforze)/2), cv::Range(grad_x.cols/2-(sizematforze)/2,grad_x.cols/2+(sizematforze)/2));
+    cv::Mat grad_y_rid=grad_y(cv::Range(grad_y.rows/2-(sizematforze)/2,grad_y.rows/2+(sizematforze)/2), cv::Range(grad_y.cols/2-(sizematforze)/2,grad_y.cols/2+(sizematforze)/2));
+    
+    /// costruzione matrice forze
+    for(int i=0;i<sizematforze;i++){
+        for(int j=0;j<sizematforze;j++){
+            matriceForze.at<cv::Vec3f>(i,j)=cv::Vec3f(grad_x_rid.at<short>(i,j),grad_y_rid.at<short>(i,j),0);
+        }
+    }
+    cv::Mat gradrid=grad(cv::Range(grad.rows/2-(sizematforze)/2,grad.rows/2+(sizematforze)/2), cv::Range(grad.cols/2-(sizematforze)/2,grad.cols/2+(sizematforze)/2));    
+    cv::resize(gradrid, robot_grad, cv::Size(h/2,w/2), 0, 0,cv::INTER_LINEAR);
+    cv::resize(dist, dist_ridotta, cv::Size(h/2,w/2), 0, 0,cv::INTER_LINEAR);
+    dist_ridotta*=255;
+    dist_ridotta.convertTo(dist_ridotta,CV_8UC1);
 }
 
 
 /*** Function used for the visualization of the command velocity in the GUI ***/
 void costruisciImmagineAssi(cv::Mat& imm, float joyspeed, float joyangular){
-	imm=cv::Scalar(255);
-	int lungh=imm.rows/2-10;
-	
-	imm(cv::Range(0,imm.rows/2-10),cv::Range(imm.cols/2-5,imm.cols/2+5))=cv::Scalar(0);
-	imm(cv::Range(imm.rows/2+10,imm.rows),cv::Range(imm.cols/2-5,imm.cols/2+5))=cv::Scalar(0);
-	imm(cv::Range(imm.rows/2-5,imm.rows/2+5),cv::Range(0,imm.cols/2-10))=cv::Scalar(0);
-	imm(cv::Range(imm.rows/2-5,imm.rows/2+5),cv::Range(imm.cols/2+10,imm.cols))=cv::Scalar(0);
+    imm=cv::Scalar(255);
+    int lungh=imm.rows/2-10;
+    
+    imm(cv::Range(0,imm.rows/2-10),cv::Range(imm.cols/2-5,imm.cols/2+5))=cv::Scalar(0);
+    imm(cv::Range(imm.rows/2+10,imm.rows),cv::Range(imm.cols/2-5,imm.cols/2+5))=cv::Scalar(0);
+    imm(cv::Range(imm.rows/2-5,imm.rows/2+5),cv::Range(0,imm.cols/2-10))=cv::Scalar(0);
+    imm(cv::Range(imm.rows/2-5,imm.rows/2+5),cv::Range(imm.cols/2+10,imm.cols))=cv::Scalar(0);
 
-	if(joyspeed>0){
+    if(joyspeed>0){
         if (joyspeed>max_vel_x){
-			imm(cv::Range(0,imm.rows/2-10),cv::Range(imm.cols/2-5,imm.cols/2+5))=cv::Scalar(150);
-			return;
-		}
+            imm(cv::Range(0,imm.rows/2-10),cv::Range(imm.cols/2-5,imm.cols/2+5))=cv::Scalar(150);
+            return;
+        }
         imm(cv::Range(-(lungh/max_vel_x)*joyspeed+lungh,imm.rows/2-11),cv::Range(imm.cols/2-4,imm.cols/2+4))=cv::Scalar(150);
-	}else{
+    }else{
         if (joyspeed<-max_vel_x){
-			imm(cv::Range(imm.rows/2+10,imm.rows),cv::Range(imm.cols/2-5,imm.cols/2+5))=cv::Scalar(150);
-			return;
-		}
+            imm(cv::Range(imm.rows/2+10,imm.rows),cv::Range(imm.cols/2-5,imm.cols/2+5))=cv::Scalar(150);
+            return;
+        }
         imm(cv::Range(imm.rows/2+11,-((imm.rows/2-11)/max_vel_x)*joyspeed+imm.rows/2+11),cv::Range(imm.cols/2-4,imm.cols/2+4))=cv::Scalar(150);
-	}
-	if(joyangular>0){
+    }
+    if(joyangular>0){
         if (joyangular>max_vel_theta){
-			imm(cv::Range(imm.rows/2-5,imm.rows/2+5),cv::Range(0,imm.cols/2-10))=cv::Scalar(150);
-			return;
-		}
+            imm(cv::Range(imm.rows/2-5,imm.rows/2+5),cv::Range(0,imm.cols/2-10))=cv::Scalar(150);
+            return;
+        }
         imm(cv::Range(imm.rows/2-4,imm.rows/2+4),cv::Range(-(((imm.cols)/2-10)/max_vel_theta)*joyangular+imm.cols/2-10,imm.cols/2-10))=cv::Scalar(150);
-	}else{
+    }else{
         if (joyangular<-max_vel_theta){
-			imm(cv::Range(imm.rows/2-5,imm.rows/2+5),cv::Range(imm.cols/2+10,imm.cols))=cv::Scalar(150);
-			return;
-		}
+            imm(cv::Range(imm.rows/2-5,imm.rows/2+5),cv::Range(imm.cols/2+10,imm.cols))=cv::Scalar(150);
+            return;
+        }
         imm(cv::Range(imm.rows/2-4,imm.rows/2+4),cv::Range(imm.cols/2+10,-((imm.cols/2-11)/max_vel_theta)*joyangular+imm.cols/2+11))=cv::Scalar(150);
-	}
+    }
 }
 
 
 void onTrackbarSaturazioneattrazione( int,void*){
-	distanza_saturazione_attr=distanza_saturazione_attr_cm/100.f;
-	n_pixel_sat_attr=(distanza_saturazione_attr)/resolution;
-	private_nh_ptr->setParam("attractiveDistanceInfluence_m",distanza_saturazione_attr);
-	//ros::param::set("attractiveDistanceInfluence_m",distanza_saturazione_attr);	
+    distanza_saturazione_attr=distanza_saturazione_attr_cm/100.f;
+    n_pixel_sat_attr=(distanza_saturazione_attr)/resolution;
+    private_nh_ptr->setParam("attractiveDistanceInfluence_m",distanza_saturazione_attr);
+    //ros::param::set("attractiveDistanceInfluence_m",distanza_saturazione_attr);    
 }
 
 void onTrackbarSaturazione( int,void*){
-	distanza_saturazione=distanza_saturazione_cm/100.f;
-	n_pixel_sat=(distanza_saturazione)/resolution;
-	private_nh_ptr->setParam("obstaclesDistanceInfluence_m",distanza_saturazione);	
-	//ros::param::set("obstaclesDistanceInfluence_m",distanza_saturazione);	
+    distanza_saturazione=distanza_saturazione_cm/100.f;
+    n_pixel_sat=(distanza_saturazione)/resolution;
+    private_nh_ptr->setParam("obstaclesDistanceInfluence_m",distanza_saturazione);    
+    //ros::param::set("obstaclesDistanceInfluence_m",distanza_saturazione);    
 }
 
 void onTrackbarForceScaling( int, void* ){
-	force_scale=(force_scale_tb/1000.f)/(pixel_robot/2);
-	private_nh_ptr->setParam("force_scale",(float)force_scale_tb/1000.f);
-	//ros::param::set("force_scale",(float)force_scale_tb/1000.f);
+    force_scale=(force_scale_tb/1000.f)/(pixel_robot/2);
+    private_nh_ptr->setParam("force_scale",(float)force_scale_tb/1000.f);
+    //ros::param::set("force_scale",(float)force_scale_tb/1000.f);
 }
 
 void onTrackbarMomentumScaling( int, void* ){
-	momentum_scale=(momentum_scale_tb/1000.f)/(pixel_robot/2);
-	private_nh_ptr->setParam("momentum_scale",(float)momentum_scale_tb/1000.f);
-	//ros::param::set("momentum_scale",(float)momentum_scale_tb/1000.f);
+    momentum_scale=(momentum_scale_tb/1000.f)/(pixel_robot/2);
+    private_nh_ptr->setParam("momentum_scale",(float)momentum_scale_tb/1000.f);
+    //ros::param::set("momentum_scale",(float)momentum_scale_tb/1000.f);
 }
 
 
 /*** Building the GUI ***/
 void creaGUI(cv::Mat& imm1, cv::Mat& imm2, cv::Mat& imm3, cv::Mat& imm4, cv::Mat& imm5, cv::Mat& immris){
-	immris=cv::Scalar(200);
-	for (int i=0;i<imm1.rows;i++){
-		for(int j=0;j<imm1.cols;j++){
-			immris.at<uchar>(i,j)=imm1.at<uchar>(i,j);
-		}
-	}
-	for (int i=0;i<imm2.rows-1;i++){
-		for(int j=0;j<imm2.cols;j++){
-			immris.at<uchar>(i,j+imm1.cols+2)=imm2.at<uchar>(i,j);
-		}
-	}
-	for (int i=1;i<imm3.rows;i++){
-		for(int j=0;j<imm3.cols;j++){
-			immris.at<uchar>(i+imm2.rows,j+imm1.cols+2)=imm3.at<uchar>(i,j);
-		}
-	}
-	for (int i=0;i<imm4.rows-1;i++){
-		for(int j=0;j<imm4.cols;j++){
-			immris.at<uchar>(i,j+imm1.cols+2+imm2.cols+2)=imm4.at<uchar>(i,j);
-		}
-	}
-	for (int i=1;i<imm5.rows;i++){
-		for(int j=0;j<imm5.cols;j++){
-			immris.at<uchar>(i+imm4.rows,j+imm1.cols+2+imm2.cols+2)=imm5.at<uchar>(i,j);
-		}
-	}
+    immris=cv::Scalar(200);
+    for (int i=0;i<imm1.rows;i++){
+        for(int j=0;j<imm1.cols;j++){
+            immris.at<uchar>(i,j)=imm1.at<uchar>(i,j);
+        }
+    }
+    for (int i=0;i<imm2.rows-1;i++){
+        for(int j=0;j<imm2.cols;j++){
+            immris.at<uchar>(i,j+imm1.cols+2)=imm2.at<uchar>(i,j);
+        }
+    }
+    for (int i=1;i<imm3.rows;i++){
+        for(int j=0;j<imm3.cols;j++){
+            immris.at<uchar>(i+imm2.rows,j+imm1.cols+2)=imm3.at<uchar>(i,j);
+        }
+    }
+    for (int i=0;i<imm4.rows-1;i++){
+        for(int j=0;j<imm4.cols;j++){
+            immris.at<uchar>(i,j+imm1.cols+2+imm2.cols+2)=imm4.at<uchar>(i,j);
+        }
+    }
+    for (int i=1;i<imm5.rows;i++){
+        for(int j=0;j<imm5.cols;j++){
+            immris.at<uchar>(i+imm4.rows,j+imm1.cols+2+imm2.cols+2)=imm5.at<uchar>(i,j);
+        }
+    }
 }
 
 
 void calcolaMomentoeForza(cv::Mat& forze, cv::Vec3f& momento, cv::Vec3f& forza){
-	cv::Vec3f momtemp(0,0,0);
-	cv::Vec3f forzatemp(0,0,0);
-	cv::Vec3f f(0,0,0);
-	cv::Vec3f b(0,0,0);
-	for (int i=0;i<forze.cols;i++){
-		for (int j=0; j<forze.rows;j++){
-			f=forze.at<cv::Vec3f>(j,i);
-			if(f!=cv::Vec3f(0,0,0)&&(i!=forze.rows/2 && j!=forze.rows/2)){
-				if(j<=forze.rows/2){
-					b[0]=-(-i+forze.rows/2); b[1]=-(j-forze.rows/2);
-					momtemp+=b.cross(f);
-				}
-			}
-			if(f!=cv::Vec3f(0,0,0)){
-				forzatemp[0]+=f[0]; forzatemp[1]+=f[1];
-			}
-		}
-	}
-	momento=momtemp;
-	forza=forzatemp;
+    cv::Vec3f momtemp(0,0,0);
+    cv::Vec3f forzatemp(0,0,0);
+    cv::Vec3f f(0,0,0);
+    cv::Vec3f b(0,0,0);
+    for (int i=0;i<forze.cols;i++){
+        for (int j=0; j<forze.rows;j++){
+            f=forze.at<cv::Vec3f>(j,i);
+            if(f!=cv::Vec3f(0,0,0)&&(i!=forze.rows/2 && j!=forze.rows/2)){
+                if(j<=forze.rows/2){
+                    b[0]=-(-i+forze.rows/2); b[1]=-(j-forze.rows/2);
+                    momtemp+=b.cross(f);
+                }
+            }
+            if(f!=cv::Vec3f(0,0,0)){
+                forzatemp[0]+=f[0]; forzatemp[1]+=f[1];
+            }
+        }
+    }
+    momento=momtemp;
+    forza=forzatemp;
 } 
 
 void callbackReconfigure(gradient_based_navigation::GradientBasedNavigationConfig &config, uint32_t level){
@@ -639,33 +639,33 @@ void callbackReconfigure(gradient_based_navigation::GradientBasedNavigationConfi
 
     // distanza_saturazione_attr_cm = config.attractive_distance_influence;
     // distanza_saturazione_attr = distanza_saturazione_attr_cm/100.f;
-	distanza_saturazione_attr = config.attractiveDistanceInfluence_m;
+    distanza_saturazione_attr = config.attractiveDistanceInfluence_m;
     n_pixel_sat_attr=(distanza_saturazione_attr)/resolution;
     private_nh_ptr->setParam("attractiveDistanceInfluence_m",distanza_saturazione_attr);
     ROS_INFO("attractive_distance_influence: %f", distanza_saturazione_attr);
 
-	// distanza_saturazione_cm = config.obstacle_distance_influence;
+    // distanza_saturazione_cm = config.obstacle_distance_influence;
     // distanza_saturazione = distanza_saturazione_cm/100.f;
-	distanza_saturazione = config.obstaclesDistanceInfluence_m;
+    distanza_saturazione = config.obstaclesDistanceInfluence_m;
     n_pixel_sat=(distanza_saturazione)/resolution;
     private_nh_ptr->setParam("obstaclesDistanceInfluence_m",distanza_saturazione);
     ROS_INFO("obstacle_distance_influence: %f", distanza_saturazione);
 
     // force_scale_tb = config.force_scale;
     // force_scale=(force_scale_tb/1000.f)/(pixel_robot/2);
-	force_scale=config.force_scale/(pixel_robot/2);
-	force_scale_tb = (int)(config.force_scale * 1000);
+    force_scale=config.force_scale/(pixel_robot/2);
+    force_scale_tb = (int)(config.force_scale * 1000);
     private_nh_ptr->setParam("force_scale",force_scale);
     ROS_INFO("force_scale (m): %f",force_scale*(pixel_robot/2));
 
     // momentum_scale_tb = config.momentum_scale;
     // momentum_scale=(momentum_scale_tb/1000.f)/(pixel_robot/2);
-	momentum_scale=config.momentum_scale/(pixel_robot/2);
-	momentum_scale_tb = (int)(config.momentum_scale * 1000);
+    momentum_scale=config.momentum_scale/(pixel_robot/2);
+    momentum_scale_tb = (int)(config.momentum_scale * 1000);
     private_nh_ptr->setParam("momentum_scale",(float)momentum_scale);
     ROS_INFO("momentum_scale (m): %f",momentum_scale*(pixel_robot/2));
 
-	double robot_radius=config.robot_radius;
+    double robot_radius=config.robot_radius;
     private_nh_ptr->setParam("robot_radius",robot_radius);
     ROS_INFO("(NOT USED) robot_radius (m): %f",robot_radius);
 
@@ -734,42 +734,42 @@ bool checkRobotStuck() {
 int main(int argc, char **argv)
 {
 
-  	ros::init(argc, argv, "gradient_based_navigation");
+      ros::init(argc, argv, "gradient_based_navigation");
 
-	parseCmdLine(argc, argv);
+    parseCmdLine(argc, argv);
 
-  	ros::NodeHandle n;
-	ros::NodeHandle private_nh("~");
-	private_nh_ptr = &private_nh;
+      ros::NodeHandle n;
+    ros::NodeHandle private_nh("~");
+    private_nh_ptr = &private_nh;
 
-	ros::Publisher pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1);
-	
-	ros::Subscriber sub3 = n.subscribe("joystick_cmd_vel", 1, callbackJoystickInput);
-	ros::Subscriber sub2 = n.subscribe("desired_cmd_vel", 1, callbackControllerInput);
+    ros::Publisher pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+    
+    ros::Subscriber sub3 = n.subscribe("joystick_cmd_vel", 1, callbackJoystickInput);
+    ros::Subscriber sub2 = n.subscribe("desired_cmd_vel", 1, callbackControllerInput);
 
-	ros::Subscriber sub = n.subscribe("base_scan", 1, callbackSensore);
+    ros::Subscriber sub = n.subscribe("base_scan", 1, callbackSensore);
 
-	ros::Subscriber sub4 = n.subscribe("attractive_points", 1, callbackattractivePoints);
+    ros::Subscriber sub4 = n.subscribe("attractive_points", 1, callbackattractivePoints);
 
-	ros::Subscriber sub5 = n.subscribe("path", 1, cbPath);
+    ros::Subscriber sub5 = n.subscribe("path", 1, cbPath);
 
-	if (!private_nh_ptr->hasParam("attractiveDistanceThreshold_m"))
-	  private_nh_ptr->setParam("attractiveDistanceThreshold_m",attr_dist_thresh);
-	if (!private_nh_ptr->hasParam("attractiveDistanceInfluence_m"))
-	  private_nh_ptr->setParam("attractiveDistanceInfluence_m",0.5f);
-	if (!private_nh_ptr->hasParam("obstaclesDistanceInfluence_m"))
-	  private_nh_ptr->setParam("obstaclesDistanceInfluence_m",1.0f);
-	if (!private_nh_ptr->hasParam("force_scale"))
-	  private_nh_ptr->setParam("force_scale",.4f);
-	if (!private_nh_ptr->hasParam("momentum_scale"))
-	  private_nh_ptr->setParam("momentum_scale",.1f);
-	if (!private_nh_ptr->hasParam("obstacleNearnessEnabled"))
-	  private_nh_ptr->setParam("obstacleNearnessEnabled",obstacleNearnessEnabled);
-	if (!private_nh_ptr->hasParam("obstacleNearnessDistance"))
-	  private_nh_ptr->setParam("obstacleNearnessDistance",obstacleNearnessDistance);
+    if (!private_nh_ptr->hasParam("attractiveDistanceThreshold_m"))
+      private_nh_ptr->setParam("attractiveDistanceThreshold_m",attr_dist_thresh);
+    if (!private_nh_ptr->hasParam("attractiveDistanceInfluence_m"))
+      private_nh_ptr->setParam("attractiveDistanceInfluence_m",0.5f);
+    if (!private_nh_ptr->hasParam("obstaclesDistanceInfluence_m"))
+      private_nh_ptr->setParam("obstaclesDistanceInfluence_m",1.0f);
+    if (!private_nh_ptr->hasParam("force_scale"))
+      private_nh_ptr->setParam("force_scale",.4f);
+    if (!private_nh_ptr->hasParam("momentum_scale"))
+      private_nh_ptr->setParam("momentum_scale",.1f);
+    if (!private_nh_ptr->hasParam("obstacleNearnessEnabled"))
+      private_nh_ptr->setParam("obstacleNearnessEnabled",obstacleNearnessEnabled);
+    if (!private_nh_ptr->hasParam("obstacleNearnessDistance"))
+      private_nh_ptr->setParam("obstacleNearnessDistance",obstacleNearnessDistance);
 
 
-	// Reconfigure settings
+    // Reconfigure settings
 
     dynamic_reconfigure::Server<gradient_based_navigation::GradientBasedNavigationConfig> server;
     dynamic_reconfigure::Server<gradient_based_navigation::GradientBasedNavigationConfig>::CallbackType f;
@@ -790,19 +790,19 @@ int main(int argc, char **argv)
     double fps=25.0; // Hz
     private_nh.param("rate", fps, 25.0);
 
-	// GUI parameter
+    // GUI parameter
     private_nh.param("GUI", GUI, false);
 
-	// parametri ROS - letti nel ciclo
-	double par;
-	private_nh_ptr->getParam("attractiveDistanceInfluence_m",par);
-	distanza_saturazione_attr_cm=(int)(par*100);
-	private_nh_ptr->getParam("obstaclesDistanceInfluence_m",par);
-	distanza_saturazione_cm=(int)(par*100);
-	private_nh_ptr->getParam("force_scale",par);
-	force_scale_tb=(int)(par*1000);
-	private_nh_ptr->getParam("momentum_scale",par);
-	momentum_scale_tb=(int)(par*1000);
+    // parametri ROS - letti nel ciclo
+    double par;
+    private_nh_ptr->getParam("attractiveDistanceInfluence_m",par);
+    distanza_saturazione_attr_cm=(int)(par*100);
+    private_nh_ptr->getParam("obstaclesDistanceInfluence_m",par);
+    distanza_saturazione_cm=(int)(par*100);
+    private_nh_ptr->getParam("force_scale",par);
+    force_scale_tb=(int)(par*1000);
+    private_nh_ptr->getParam("momentum_scale",par);
+    momentum_scale_tb=(int)(par*1000);
     obstacleNearnessEnabled=getobstacleNearnessEnabled();
     obstacleNearnessDistance=getobstacleNearnessDistance();
 
@@ -817,145 +817,145 @@ int main(int argc, char **argv)
     printf("  obstacleNearnessDistance: %.2f\n",obstacleNearnessDistance);
 
 
-	if (GUI) {
-		// OpenCV stuff
-		cv::namedWindow("GUI", 1);
-		cv::createTrackbar("attractive distance influence (cm)", "GUI", &distanza_saturazione_attr_cm, 200, onTrackbarSaturazioneattrazione, &n);
-		cv::createTrackbar("Obstacles distance influence (cm)", "GUI", &distanza_saturazione_cm, 200, onTrackbarSaturazione, &n);
-		cv::createTrackbar("Force Scale (x1000)", "GUI", &force_scale_tb, 2000, onTrackbarForceScaling, 0);
-		cv::createTrackbar("Momentum Scale (x1000)", "GUI", &momentum_scale_tb, 2000, onTrackbarMomentumScaling, 0);
-	}
-	ros::Rate loop_rate(fps);
+    if (GUI) {
+        // OpenCV stuff
+        cv::namedWindow("GUI", 1);
+        cv::createTrackbar("attractive distance influence (cm)", "GUI", &distanza_saturazione_attr_cm, 200, onTrackbarSaturazioneattrazione, &n);
+        cv::createTrackbar("Obstacles distance influence (cm)", "GUI", &distanza_saturazione_cm, 200, onTrackbarSaturazione, &n);
+        cv::createTrackbar("Force Scale (x1000)", "GUI", &force_scale_tb, 2000, onTrackbarForceScaling, 0);
+        cv::createTrackbar("Momentum Scale (x1000)", "GUI", &momentum_scale_tb, 2000, onTrackbarMomentumScaling, 0);
+    }
+    ros::Rate loop_rate(fps);
     ros::AsyncSpinner spinner(4); // n threads
-	spinner.start();
+    spinner.start();
 
-	float repulsive_linear_acc=0;
-	float repulsive_angular_acc=0;
-	float attr_linear_acc=0;
-	float attr_angular_acc=0;
-	cv::Vec3f forza;
-	cv::Vec3f momento;
+    float repulsive_linear_acc=0;
+    float repulsive_angular_acc=0;
+    float attr_linear_acc=0;
+    float attr_angular_acc=0;
+    cv::Vec3f forza;
+    cv::Vec3f momento;
 
-	ROS_INFO("gradient_based_navigation: waiting for laser scan...");
-	while (!laser_ready) {
-	  loop_rate.sleep();
-	}
-	ROS_INFO("gradient_based_navigation: laser scan OK");
-	
-	
-  double current_linear_vel=0;
-  double target_linear_vel=0;
-  double current_ang_vel=0;
-  double target_ang_vel=0;
+    ROS_INFO("gradient_based_navigation: waiting for laser scan...");
+    while (!laser_ready) {
+      loop_rate.sleep();
+    }
+    ROS_INFO("gradient_based_navigation: laser scan OK");
+    
+    
+    double current_linear_vel=0;
+    double target_linear_vel=0;
+    double current_ang_vel=0;
+    double target_ang_vel=0;
 
-	tf::Vector3 axis;
-	tf::TransformListener listener;
-	std::string laser_frame;
-	std::string map_frame;
-	tf::StampedTransform transform;
+    tf::Vector3 axis;
+    tf::TransformListener listener;
+    std::string laser_frame;
+    std::string map_frame;
+    tf::StampedTransform transform;
 
-	private_nh_ptr->param("laser_frame",laser_frame,std::string("base_laser_link"));
-	private_nh_ptr->param("map_frame",map_frame,std::string("map"));
+    private_nh_ptr->param("laser_frame",laser_frame,std::string("base_laser_link"));
+    private_nh_ptr->param("map_frame",map_frame,std::string("map"));
 
-	if (n.hasParam("tf_prefix")) {
-	    std::string tf_prefix;
-	    n.getParam("tf_prefix",tf_prefix);
-	    ROS_INFO_STREAM("Using tf_prefix: " << tf_prefix);
-	    laser_frame = "/" + tf_prefix + "/" + laser_frame;
-	    map_frame = "/" + tf_prefix + "/" + map_frame;
-	}
-	    
-	ros::Duration delay(3.0); // seconds
-	delay.sleep();
-	
-	int iter=0;
+    if (n.hasParam("tf_prefix")) {
+        std::string tf_prefix;
+        n.getParam("tf_prefix",tf_prefix);
+        ROS_INFO_STREAM("Using tf_prefix: " << tf_prefix);
+        laser_frame = "/" + tf_prefix + "/" + laser_frame;
+        map_frame = "/" + tf_prefix + "/" + map_frame;
+    }
+        
+    ros::Duration delay(3.0); // seconds
+    delay.sleep();
+    
+    int iter=0;
 
-	while(ros::ok()){ //n.ok()){
+    while(ros::ok()){ //n.ok()){
 
         /*** read ros params every fps iterations (1 second) *******************/
-		if (iter==0){
-			private_nh_ptr->getParam("GUI", GUI);
-			n_pixel_sat_attr=getNumPixelSaturazioneattrazione();
-			n_pixel_sat=getNumPixelSaturazione();
-			force_scale=getRepulsiveForceScale();
-			momentum_scale=getRepulsiveMomentumScale();
-			attr_dist_thresh=getattractiveDistanceThreshold();
+        if (iter==0){
+            private_nh_ptr->getParam("GUI", GUI);
+            n_pixel_sat_attr=getNumPixelSaturazioneattrazione();
+            n_pixel_sat=getNumPixelSaturazione();
+            force_scale=getRepulsiveForceScale();
+            momentum_scale=getRepulsiveMomentumScale();
+            attr_dist_thresh=getattractiveDistanceThreshold();
             obstacleNearnessEnabled=getobstacleNearnessEnabled();
             obstacleNearnessDistance=getobstacleNearnessDistance();
-		}
-		iter++;
-		if(iter>fps) iter=0;
-		/************************************************************/
+        }
+        iter++;
+        if(iter>fps) iter=0;
+        /************************************************************/
 
-		if (attr_points.size()>0) {
-		  /*** tf *************************/
-		  try{
+        if (attr_points.size()>0) {
+          /*** tf *************************/
+          try{
             listener.lookupTransform(laser_frame, map_frame, time_stamp, transform);
-		  }
-		  catch (tf::TransformException ex){
+          }
+          catch (tf::TransformException ex){
             ROS_ERROR("gradient_based_navigation: %s",ex.what());
             ROS_ERROR_STREAM("TF from " << laser_frame << "  to " << map_frame);
             //std::cout<<source_frame<<std::endl;
-		  }
+          }
 
-		  robot_posx=transform.getOrigin().x();
-		  robot_posy=transform.getOrigin().y();
-		  robot_orient=transform.getRotation().getAngle();
-		  axis=transform.getRotation().getAxis();		
-		  robot_orient*=axis[2];
-		  /********************************/
-		}
-		
+          robot_posx=transform.getOrigin().x();
+          robot_posy=transform.getOrigin().y();
+          robot_orient=transform.getRotation().getAngle();
+          axis=transform.getRotation().getAxis();        
+          robot_orient*=axis[2];
+          /********************************/
+        }
+        
 
-		/*** Building the force field ***/
-		costruisciScanImage();
+        /*** Building the force field ***/
+        costruisciScanImage();
         if (obstacleNearnessEnabled) {
-		  costruisciDistanceImageStealth();
+          costruisciDistanceImageStealth();
         }
         else {
           costruisciDistanceImageStandard();
         }
-		costruisciGradientImage();
-		////
-		costruisciattractiveField();
-		////
-		robot_grad+=robot_grad_attr;
-		/********************************/
+        costruisciGradientImage();
+        ////
+        costruisciattractiveField();
+        ////
+        robot_grad+=robot_grad_attr;
+        /********************************/
 
-		/*** Compute the velocity command and publish it ********************************/
-		repulsive_linear_acc=0;
-		repulsive_angular_acc=0;
-		
-		
-		// Check if input or laser messages are too old
+        /*** Compute the velocity command and publish it ********************************/
+        repulsive_linear_acc=0;
+        repulsive_angular_acc=0;
+        
+        
+        // Check if input or laser messages are too old
 #if 0
-		// Does not work with joystick
-		if (delay_last_input()>MAX_MSG_DELAY) {
-		    if (delay_last_input()<4*MAX_MSG_DELAY)
-			ROS_WARN("Stopping the roobt: no input !!!");
-		    joy_command_vel.linear.x=0;  joy_command_vel.angular.z=0;
-		}
-#endif	
-		if (!joystick_override_active && robot_was_moving() && delay_last_input()>MAX_MSG_DELAY) {
+        // Does not work with joystick
+        if (delay_last_input()>MAX_MSG_DELAY) {
+            if (delay_last_input()<4*MAX_MSG_DELAY)
+            ROS_WARN("Stopping the roobt: no input !!!");
+            joy_command_vel.linear.x=0;  joy_command_vel.angular.z=0;
+        }
+#endif    
+        if (!joystick_override_active && robot_was_moving() && delay_last_input()>MAX_MSG_DELAY) {
                 ROS_INFO("No controller input detected, stopping the robot.");
-				desired_cmd_vel.linear.x=0;  desired_cmd_vel.angular.z=0;	
+                desired_cmd_vel.linear.x=0;  desired_cmd_vel.angular.z=0;    
                 //joystick_override_active = true;
                 //ros::param::set("use_only_joystick", 1);
-		}
-		if (delay_last_laser()>MAX_MSG_DELAY) {
-		    if (delay_last_laser()<4*MAX_MSG_DELAY){
-				ROS_WARN("Stopping the robot: no laser!!!");
-				joy_command_vel.linear.x=0;  joy_command_vel.angular.z=0;
-		    }
-			
-		}
-		if(!received_any_input || joystick_override_active)
-			command_vel=joy_command_vel;
-		else command_vel = desired_cmd_vel;
+        }
+        if (delay_last_laser()>MAX_MSG_DELAY) {
+            if (delay_last_laser()<4*MAX_MSG_DELAY){
+                ROS_WARN("Stopping the robot: no laser!!!");
+                joy_command_vel.linear.x=0;  joy_command_vel.angular.z=0;
+            }
+            
+        }
+        if(!received_any_input || joystick_override_active)
+            command_vel=joy_command_vel;
+        else command_vel = desired_cmd_vel;
 
-		target_linear_vel=command_vel.linear.x;
-		target_ang_vel=command_vel.angular.z;
-		speed=command_vel.linear.x;
+        target_linear_vel=command_vel.linear.x;
+        target_ang_vel=command_vel.angular.z;
+        speed=command_vel.linear.x;
 
         if(fabs(speed)>0.1){
             // std::cerr << "gbn:: speed " << speed << " " << fabs(speed)*1e3 << std::endl;
@@ -991,7 +991,7 @@ int main(int argc, char **argv)
 
 
 
-		///////////// attrazione ///////////////////////
+        ///////////// attrazione ///////////////////////
         if(speed>0){
             calcolaMomentoeForza(matriceForzeattr,momento,forza);
             attr_linear_acc=forza[1];
@@ -1001,20 +1001,20 @@ int main(int argc, char **argv)
                 target_ang_vel-=momentum_scale*attr_angular_acc*.01;
             }
         }
-		////////////////////////////////////////////////
+        ////////////////////////////////////////////////
 
         if(target_ang_vel>max_vel_theta){
             target_ang_vel=max_vel_theta;
-		}
+        }
         if(target_ang_vel<-max_vel_theta){
             target_ang_vel=-max_vel_theta;
-		}	
+        }    
         if(target_linear_vel>max_vel_x){
             target_linear_vel=max_vel_x;
-		}	
+        }    
         if(target_linear_vel<-max_vel_x){
             target_linear_vel=-max_vel_x;
-		}
+        }
 
         std::string esparam="0"; int iesparam=0;
         ros::param::get("emergency_stop", esparam);
@@ -1051,38 +1051,41 @@ int main(int argc, char **argv)
         //std::cout << "target : " << target_linear_vel << " current : " << current_linear_vel << std::endl;
     }
     else
-    	current_linear_vel = target_linear_vel;
+        current_linear_vel = target_linear_vel;
 
     current_ang_vel = target_ang_vel;
 
     command_vel.linear.x = current_linear_vel;
-	command_vel.angular.z = current_ang_vel;
-	
+    command_vel.angular.z = current_ang_vel;
+    
     last_cmdvel_x = command_vel.linear.x;  // last cmdvel messages sent
     last_cmdvel_th = command_vel.angular.z;
 
     pub.publish(command_vel);
-	/********************************************************************************/
+    /********************************************************************************/
 
-		
-		if(GUI){
+        
+        if(GUI){
             ros::spinOnce();
 
-			/**** Create the GUI ************************************************************/
-			costruisciImmagineAssi(visual_joy1,target_linear_vel,target_ang_vel);
-			costruisciImmagineAssi(visual_joy2,command_vel.linear.x,command_vel.angular.z);
-			creaGUI(imm,dist_ridotta,robot_grad,visual_joy1,visual_joy2,immTot);
+            /**** Create the GUI ************************************************************/
+            costruisciImmagineAssi(visual_joy1,target_linear_vel,target_ang_vel);
+            costruisciImmagineAssi(visual_joy2,command_vel.linear.x,command_vel.angular.z);
+            creaGUI(imm,dist_ridotta,robot_grad,visual_joy1,visual_joy2,immTot);
 
-			cv::imshow("GUI",immTot);
-			cv::waitKey(10);
+            cv::imshow("GUI",immTot);
+            cv::waitKey(10);
             
-			/********************************************************************************/
-		}
+            /********************************************************************************/
+        }
         
         loop_rate.sleep();
-	}
-	spinner.stop();
-	return 0;
+
+    } // while ros.ok()
+
+
+    spinner.stop();
+    return 0;
 }
 
 

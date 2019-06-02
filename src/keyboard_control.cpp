@@ -99,9 +99,9 @@ int main(int argc, char** argv)
 {
     ros::init(argc,argv,"keyboard_control", ros::init_options::AnonymousName | ros::init_options::NoSigintHandler);
 
-  	ros::NodeHandle n;
-	ros::NodeHandle private_nh("~");
-	private_nh_ptr = &private_nh;
+      ros::NodeHandle n;
+    ros::NodeHandle private_nh("~");
+    private_nh_ptr = &private_nh;
 
     ErraticKeyboardTeleopNode tbk;
     

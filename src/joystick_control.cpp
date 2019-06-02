@@ -67,10 +67,10 @@ static double max_vel_x, max_vel_theta;
 void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
 {
     vel.linear.x=msg->axes[PS3_AXIS_STICK_LEFT_UPWARDS]*max_vel_x;
-	
-	//if(msg->axes[PS3_AXIS_BUTTON_REAR_RIGHT_2]<-.05) vel.linear.x*=1-msg->axes[PS3_AXIS_BUTTON_REAR_RIGHT_2]*2;
-	//std::cout<<msg->axes[PS3_AXIS_BUTTON_REAR_RIGHT_2]<<std::endl;
-	
+    
+    //if(msg->axes[PS3_AXIS_BUTTON_REAR_RIGHT_2]<-.05) vel.linear.x*=1-msg->axes[PS3_AXIS_BUTTON_REAR_RIGHT_2]*2;
+    //std::cout<<msg->axes[PS3_AXIS_BUTTON_REAR_RIGHT_2]<<std::endl;
+    
     vel.angular.z=msg->axes[PS3_AXIS_STICK_RIGHT_LEFTWARDS]*max_vel_theta;
 
     if ((fabs(vel.linear.x)<1e-3) && (fabs(vel.angular.z)<1e-3)) {
@@ -80,25 +80,25 @@ void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
 
     // cout << " -- " << vel.linear.x << " " << vel.angular.z << " " << cnt_zero << endl;
 
-	if(msg->buttons[LOGITECH_BUTTON_RB]) {
-	  ROS_WARN("!!!Emergency Stop!!!");
-	  ros::param::set("emergency_stop", 1);
-	}
-	else if(msg->buttons[LOGITECH_BUTTON_RT]) {
-	  ROS_WARN("Emergency Stop RELEASE");
-	  ros::param::set("emergency_stop", 0);
-	}
-	else if(msg->buttons[LOGITECH_BUTTON_LB]) {
-	  ROS_WARN("!!!Joystick Override Active!!! Other controllers will be ignored");
-	  ros::param::set("use_only_joystick", 1);
-	}
-	else if(msg->buttons[LOGITECH_BUTTON_LT]) {
-	  ROS_WARN("Joystick Override Disactivated");
-	  ros::param::set("use_only_joystick", 0);
-	}
-	
-	//cout << "Received message: " << msg->header.stamp.toSec() << " n." << cnt++ << endl;;
-// 	cout << msg->axes[PS3_AXIS_BUTTON_REAR_RIGHT_2] << endl;
+    if(msg->buttons[LOGITECH_BUTTON_RB]) {
+      ROS_WARN("!!!Emergency Stop!!!");
+      ros::param::set("emergency_stop", 1);
+    }
+    else if(msg->buttons[LOGITECH_BUTTON_RT]) {
+      ROS_WARN("Emergency Stop RELEASE");
+      ros::param::set("emergency_stop", 0);
+    }
+    else if(msg->buttons[LOGITECH_BUTTON_LB]) {
+      ROS_WARN("!!!Joystick Override Active!!! Other controllers will be ignored");
+      ros::param::set("use_only_joystick", 1);
+    }
+    else if(msg->buttons[LOGITECH_BUTTON_LT]) {
+      ROS_WARN("Joystick Override Disactivated");
+      ros::param::set("use_only_joystick", 0);
+    }
+    
+    //cout << "Received message: " << msg->header.stamp.toSec() << " n." << cnt++ << endl;;
+//     cout << msg->axes[PS3_AXIS_BUTTON_REAR_RIGHT_2] << endl;
 }
 
 
