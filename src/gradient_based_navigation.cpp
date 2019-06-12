@@ -21,7 +21,8 @@
 
 
 
-bool GUI=false;
+bool GUI=false;  // show GUI
+bool gbnEnabled=true;  // apply gbn (if false, cmd_vel goes through as it is)
 
 int w=600;
 int h=600;
@@ -172,6 +173,12 @@ bool getobstacleNearnessEnabled(){
 float getobstacleNearnessDistance(){
     float par;
     private_nh_ptr->getParam("obstacleNearnessDistance",par);
+    return par;
+}
+
+bool getgbnEnabled() {
+    bool par;
+    private_nh_ptr->getParam("gbnEnabled",par);
     return par;
 }
 
@@ -734,23 +741,20 @@ bool checkRobotStuck() {
 int main(int argc, char **argv)
 {
 
-      ros::init(argc, argv, "gradient_based_navigation");
+    ros::init(argc, argv, "gradient_based_navigation");
 
     parseCmdLine(argc, argv);
 
-      ros::NodeHandle n;
+    ros::NodeHandle n;
     ros::NodeHandle private_nh("~");
     private_nh_ptr = &private_nh;
 
     ros::Publisher pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     
-    ros::Subscriber sub3 = n.subscribe("joystick_cmd_vel", 1, callbackJoystickInput);
+    ros::Subscriber sub1 = n.subscribe("base_scan", 1, callbackSensore);
     ros::Subscriber sub2 = n.subscribe("desired_cmd_vel", 1, callbackControllerInput);
-
-    ros::Subscriber sub = n.subscribe("base_scan", 1, callbackSensore);
-
+    ros::Subscriber sub3 = n.subscribe("joystick_cmd_vel", 1, callbackJoystickInput);
     ros::Subscriber sub4 = n.subscribe("attractive_points", 1, callbackattractivePoints);
-
     ros::Subscriber sub5 = n.subscribe("path", 1, cbPath);
 
     if (!private_nh_ptr->hasParam("attractiveDistanceThreshold_m"))
@@ -767,6 +771,8 @@ int main(int argc, char **argv)
       private_nh_ptr->setParam("obstacleNearnessEnabled",obstacleNearnessEnabled);
     if (!private_nh_ptr->hasParam("obstacleNearnessDistance"))
       private_nh_ptr->setParam("obstacleNearnessDistance",obstacleNearnessDistance);
+    if (!private_nh_ptr->hasParam("gbnEnabled"))
+      private_nh_ptr->setParam("gbnEnabled",gbnEnabled);
 
 
     // Reconfigure settings
@@ -882,60 +888,14 @@ int main(int argc, char **argv)
             attr_dist_thresh=getattractiveDistanceThreshold();
             obstacleNearnessEnabled=getobstacleNearnessEnabled();
             obstacleNearnessDistance=getobstacleNearnessDistance();
+            gbnEnabled=getgbnEnabled();
         }
         iter++;
         if(iter>fps) iter=0;
         /************************************************************/
 
-        if (attr_points.size()>0) {
-          /*** tf *************************/
-          try{
-            listener.lookupTransform(laser_frame, map_frame, time_stamp, transform);
-          }
-          catch (tf::TransformException ex){
-            ROS_ERROR("gradient_based_navigation: %s",ex.what());
-            ROS_ERROR_STREAM("TF from " << laser_frame << "  to " << map_frame);
-            //std::cout<<source_frame<<std::endl;
-          }
 
-          robot_posx=transform.getOrigin().x();
-          robot_posy=transform.getOrigin().y();
-          robot_orient=transform.getRotation().getAngle();
-          axis=transform.getRotation().getAxis();        
-          robot_orient*=axis[2];
-          /********************************/
-        }
-        
-
-        /*** Building the force field ***/
-        costruisciScanImage();
-        if (obstacleNearnessEnabled) {
-          costruisciDistanceImageStealth();
-        }
-        else {
-          costruisciDistanceImageStandard();
-        }
-        costruisciGradientImage();
-        ////
-        costruisciattractiveField();
-        ////
-        robot_grad+=robot_grad_attr;
-        /********************************/
-
-        /*** Compute the velocity command and publish it ********************************/
-        repulsive_linear_acc=0;
-        repulsive_angular_acc=0;
-        
-        
-        // Check if input or laser messages are too old
-#if 0
-        // Does not work with joystick
-        if (delay_last_input()>MAX_MSG_DELAY) {
-            if (delay_last_input()<4*MAX_MSG_DELAY)
-            ROS_WARN("Stopping the roobt: no input !!!");
-            joy_command_vel.linear.x=0;  joy_command_vel.angular.z=0;
-        }
-#endif    
+        /**** determine command_vel ****/
         if (!joystick_override_active && robot_was_moving() && delay_last_input()>MAX_MSG_DELAY) {
                 ROS_INFO("No controller input detected, stopping the robot.");
                 desired_cmd_vel.linear.x=0;  desired_cmd_vel.angular.z=0;    
@@ -946,126 +906,185 @@ int main(int argc, char **argv)
             if (delay_last_laser()<4*MAX_MSG_DELAY){
                 ROS_WARN("Stopping the robot: no laser!!!");
                 joy_command_vel.linear.x=0;  joy_command_vel.angular.z=0;
-            }
-            
+            }            
         }
         if(!received_any_input || joystick_override_active)
-            command_vel=joy_command_vel;
-        else command_vel = desired_cmd_vel;
-
-        target_linear_vel=command_vel.linear.x;
-        target_ang_vel=command_vel.angular.z;
-        speed=command_vel.linear.x;
-
-        if(fabs(speed)>0.1){
-            // std::cerr << "gbn:: speed " << speed << " " << fabs(speed)*1e3 << std::endl;
-            calcolaMomentoeForza(matriceForze,momento,forza);
-            repulsive_linear_acc=forza[1];
-            repulsive_angular_acc=momento[2];
-  
-        //std::cerr << "gbn:: speed " << speed;
-        //std::cerr << " target " << target_linear_vel << " " << target_ang_vel;
-        //std::cerr << " repulsion " << repulsive_linear_acc << " " << repulsive_angular_acc;
-
-            if(speed>0&&forza[1]>=0){
-                target_linear_vel-=force_scale*repulsive_linear_acc*.01;
-                if (target_linear_vel<0) target_linear_vel=0;
-                if(fabs(target_linear_vel)<0.3 && fabs(target_ang_vel)>0.3) repulsive_angular_acc=0;
-                target_ang_vel+=momentum_scale*repulsive_angular_acc*.01;
-            }else if(speed<0&&forza[1]<0){
-                target_linear_vel-=force_scale*repulsive_linear_acc*.01; // LI ???
-                if (target_linear_vel<0) target_linear_vel=0; // LI ???
-                if(fabs(target_linear_vel)<0.3 && fabs(target_ang_vel)>0.3) repulsive_angular_acc=0;
-                target_ang_vel-=momentum_scale*repulsive_angular_acc*.01;
-            }
-            // else obstacle behind, so don't apply force
-
-        //std::cerr << " -> " << repulsive_linear_acc << " " << repulsive_angular_acc;
-        //std::cerr << " " << target_linear_vel << " " << target_ang_vel << std::endl;
-
-        }
-
-        if (target_linear_vel*speed<0){
-            target_linear_vel=0;
-        }
-
-
-
-        ///////////// attrazione ///////////////////////
-        if(speed>0){
-            calcolaMomentoeForza(matriceForzeattr,momento,forza);
-            attr_linear_acc=forza[1];
-            attr_angular_acc=momento[2];
-            if(forza[1]>0){
-                target_linear_vel+=force_scale*attr_linear_acc*.01;
-                target_ang_vel-=momentum_scale*attr_angular_acc*.01;
-            }
-        }
-        ////////////////////////////////////////////////
-
-        if(target_ang_vel>max_vel_theta){
-            target_ang_vel=max_vel_theta;
-        }
-        if(target_ang_vel<-max_vel_theta){
-            target_ang_vel=-max_vel_theta;
-        }    
-        if(target_linear_vel>max_vel_x){
-            target_linear_vel=max_vel_x;
-        }    
-        if(target_linear_vel<-max_vel_x){
-            target_linear_vel=-max_vel_x;
-        }
-
-        std::string esparam="0"; int iesparam=0;
-        ros::param::get("emergency_stop", esparam);
-        ros::param::get("emergency_stop", iesparam);
-
-        if ((esparam=="1") || (iesparam==1)) {
-          //std::cout << "Emergency Stop param: " << iesparam << std::endl;
-          if (target_linear_vel < -0.3) target_linear_vel = -0.3; else target_linear_vel=0;
-          target_ang_vel=0;
-        }
-
-
-    joystick_override_active = false;
-    if (ros::param::get("use_only_joystick", esparam))
-    {
-      if (esparam=="1") {
-          joystick_override_active = true;
-      }
-    }
-    else if (ros::param::get("use_only_joystick", iesparam))
-    {
-      if (iesparam==1) {
-          joystick_override_active = true;
-      }
-    }
-
-    double max_linear_acc = 0.1;
-    if (target_linear_vel > 0 && target_linear_vel - current_linear_vel > max_linear_acc){
-        current_linear_vel = std::min((double)max_vel_x, (current_linear_vel+max_linear_acc));
-        //std::cout << "target : " << target_linear_vel << " current : " << current_linear_vel << std::endl;
-    }
-    else if (target_linear_vel < 0 && target_linear_vel - current_linear_vel < -max_linear_acc){
-        current_linear_vel = std::max(-(double)max_vel_x, (current_linear_vel-max_linear_acc));
-        //std::cout << "target : " << target_linear_vel << " current : " << current_linear_vel << std::endl;
-    }
-    else
-        current_linear_vel = target_linear_vel;
-
-    current_ang_vel = target_ang_vel;
-
-    command_vel.linear.x = current_linear_vel;
-    command_vel.angular.z = current_ang_vel;
+            command_vel = joy_command_vel;
+        else 
+            command_vel = desired_cmd_vel;
     
-    last_cmdvel_x = command_vel.linear.x;  // last cmdvel messages sent
-    last_cmdvel_th = command_vel.angular.z;
 
-    pub.publish(command_vel);
-    /********************************************************************************/
+
+        if (gbnEnabled) {
+
+            if (attr_points.size()>0) {
+              /*** tf *************************/
+              try{
+                listener.lookupTransform(laser_frame, map_frame, time_stamp, transform);
+              }
+              catch (tf::TransformException ex){
+                ROS_ERROR("gradient_based_navigation: %s",ex.what());
+                ROS_ERROR_STREAM("TF from " << laser_frame << "  to " << map_frame);
+                //std::cout<<source_frame<<std::endl;
+              }
+
+              robot_posx=transform.getOrigin().x();
+              robot_posy=transform.getOrigin().y();
+              robot_orient=transform.getRotation().getAngle();
+              axis=transform.getRotation().getAxis();        
+              robot_orient*=axis[2];
+              /********************************/
+            }
+            
+
+            /*** Building the force field ***/
+            costruisciScanImage();
+            if (obstacleNearnessEnabled) {
+              costruisciDistanceImageStealth();
+            }
+            else {
+              costruisciDistanceImageStandard();
+            }
+            costruisciGradientImage();
+            ////
+            costruisciattractiveField();
+            ////
+            robot_grad+=robot_grad_attr;
+            /********************************/
+
+            /*** Compute the velocity command and publish it ********************************/
+            repulsive_linear_acc=0;
+            repulsive_angular_acc=0;
+            
+            
+            // Check if input or laser messages are too old
+    #if 0
+            // Does not work with joystick
+            if (delay_last_input()>MAX_MSG_DELAY) {
+                if (delay_last_input()<4*MAX_MSG_DELAY)
+                ROS_WARN("Stopping the roobt: no input !!!");
+                joy_command_vel.linear.x=0;  joy_command_vel.angular.z=0;
+            }
+    #endif    
+
+            target_linear_vel=command_vel.linear.x;
+            target_ang_vel=command_vel.angular.z;
+            speed=command_vel.linear.x;
+
+            if(fabs(speed)>0.1){
+                // std::cerr << "gbn:: speed " << speed << " " << fabs(speed)*1e3 << std::endl;
+                calcolaMomentoeForza(matriceForze,momento,forza);
+                repulsive_linear_acc=forza[1];
+                repulsive_angular_acc=momento[2];
+
+                //std::cerr << "gbn:: speed " << speed;
+                //std::cerr << " target " << target_linear_vel << " " << target_ang_vel;
+                //std::cerr << " repulsion " << repulsive_linear_acc << " " << repulsive_angular_acc;
+
+                if(speed>0 && forza[1]>=0) {
+                    target_linear_vel-=force_scale*repulsive_linear_acc*.01;
+                    if (target_linear_vel<0) target_linear_vel=0;
+                    if(fabs(target_linear_vel)<0.3 && fabs(target_ang_vel)>0.3) repulsive_angular_acc=0;
+                    target_ang_vel+=momentum_scale*repulsive_angular_acc*.01;
+                }
+                else if(speed<0 && forza[1]<0) {
+                    target_linear_vel-=force_scale*repulsive_linear_acc*.01; // LI ???
+                    if (target_linear_vel<0) target_linear_vel=0; // LI ???
+                    if(fabs(target_linear_vel)<0.3 && fabs(target_ang_vel)>0.3) repulsive_angular_acc=0;
+                    target_ang_vel-=momentum_scale*repulsive_angular_acc*.01;
+                }
+                // else obstacle behind, so don't apply force
+
+                //std::cerr << " -> " << repulsive_linear_acc << " " << repulsive_angular_acc;
+                //std::cerr << " " << target_linear_vel << " " << target_ang_vel << std::endl;
+
+            }
+
+            if (target_linear_vel*speed<0){
+                target_linear_vel=0;
+            }
+
+
+
+            ///////////// attrazione ///////////////////////
+            if(speed>0){
+                calcolaMomentoeForza(matriceForzeattr,momento,forza);
+                attr_linear_acc=forza[1];
+                attr_angular_acc=momento[2];
+                if(forza[1]>0){
+                    target_linear_vel+=force_scale*attr_linear_acc*.01;
+                    target_ang_vel-=momentum_scale*attr_angular_acc*.01;
+                }
+            }
+            ////////////////////////////////////////////////
+
+            if(target_ang_vel>max_vel_theta){
+                target_ang_vel=max_vel_theta;
+            }
+            if(target_ang_vel<-max_vel_theta){
+                target_ang_vel=-max_vel_theta;
+            }    
+            if(target_linear_vel>max_vel_x){
+                target_linear_vel=max_vel_x;
+            }    
+            if(target_linear_vel<-max_vel_x){
+                target_linear_vel=-max_vel_x;
+            }
+
+            std::string esparam="0"; int iesparam=0;
+            ros::param::get("emergency_stop", esparam);
+            ros::param::get("emergency_stop", iesparam);
+
+            if ((esparam=="1") || (iesparam==1)) {
+              //std::cout << "Emergency Stop param: " << iesparam << std::endl;
+              if (target_linear_vel < -0.3) target_linear_vel = -0.3; else target_linear_vel=0;
+              target_ang_vel=0;
+            }
+
+
+            joystick_override_active = false;
+            if (ros::param::get("use_only_joystick", esparam)) {
+              if (esparam=="1") {
+                  joystick_override_active = true;
+              }
+            }
+            else if (ros::param::get("use_only_joystick", iesparam)) {
+              if (iesparam==1) {
+                  joystick_override_active = true;
+              }
+            }
+
+            double max_linear_acc = 0.1;
+            if (target_linear_vel > 0 && target_linear_vel - current_linear_vel > max_linear_acc){
+                current_linear_vel = std::min((double)max_vel_x, (current_linear_vel+max_linear_acc));
+                //std::cout << "target : " << target_linear_vel << " current : " << current_linear_vel << std::endl;
+            }
+            else if (target_linear_vel < 0 && target_linear_vel - current_linear_vel < -max_linear_acc){
+                current_linear_vel = std::max(-(double)max_vel_x, (current_linear_vel-max_linear_acc));
+                //std::cout << "target : " << target_linear_vel << " current : " << current_linear_vel << std::endl;
+            }
+            else
+                current_linear_vel = target_linear_vel;
+
+            current_ang_vel = target_ang_vel;
+
+            command_vel.linear.x = current_linear_vel;
+            command_vel.angular.z = current_ang_vel;
+
+        }  // if (gbnEnabled)
+
+
+        /**** publish result ****/        
+        last_cmdvel_x = command_vel.linear.x;  // last cmdvel messages sent
+        last_cmdvel_th = command_vel.angular.z;
+
+        pub.publish(command_vel);
+        /********************************************************************************/
 
         
-        if(GUI){
+
+
+        if (GUI) {
             ros::spinOnce();
 
             /**** Create the GUI ************************************************************/
