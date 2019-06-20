@@ -92,7 +92,7 @@ std::vector<geometry_msgs::Point32> attr_points;
 float intensity=0;
 
 bool laser_ready=false;
-bool joystick_override_active = true;
+bool joystick_override_active = false;  // only joystick is considered
 
 // Timestamps for measuring acquisition delays
 ros::Time last_laser_msg_time;
@@ -221,10 +221,10 @@ void very_close_obstacle_check() {
 /*** Callback for retrieving the laser scan ***/
 void callbackSensore(const sensor_msgs::LaserScan::ConstPtr& msg)
 {    
-  if (!laser_ready) {
-    laser_ready=true;
-    std::cout << "GradientBasedNavigation:: laser data ready!!!" << std::endl;
-  }
+    if (!laser_ready) {
+        laser_ready=true;
+        ROS_INFO("GradientBasedNavigation:: laser data ready!!!");
+    }
     size=msg->ranges.size();
     angle_min=msg->angle_min;
     angle_incr=msg->angle_increment;
@@ -876,7 +876,7 @@ int main(int argc, char **argv)
     
     int iter=0;
 
-    while(ros::ok()){ //n.ok()){
+    while (ros::ok()) { 
 
         /*** read ros params every fps iterations (1 second) *******************/
         if (iter==0){
@@ -891,7 +891,7 @@ int main(int argc, char **argv)
             gbnEnabled=getgbnEnabled();
         }
         iter++;
-        if(iter>fps) iter=0;
+        if (iter>fps) iter=0;
         /************************************************************/
 
 
@@ -908,7 +908,7 @@ int main(int argc, char **argv)
                 joy_command_vel.linear.x=0;  joy_command_vel.angular.z=0;
             }            
         }
-        if(!received_any_input || joystick_override_active)
+        if (!received_any_input || joystick_override_active)
             command_vel = joy_command_vel;
         else 
             command_vel = desired_cmd_vel;
