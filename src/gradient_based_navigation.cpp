@@ -737,6 +737,7 @@ bool checkRobotStuck() {
 
 }
 
+const std::string scan_topic = "scan";
 
 int main(int argc, char **argv)
 {
@@ -751,7 +752,7 @@ int main(int argc, char **argv)
 
     ros::Publisher pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     
-    ros::Subscriber sub1 = n.subscribe("base_scan", 1, callbackSensore);
+    ros::Subscriber sub1 = n.subscribe(scan_topic, 1, callbackSensore);
     ros::Subscriber sub2 = n.subscribe("desired_cmd_vel", 1, callbackControllerInput);
     ros::Subscriber sub3 = n.subscribe("joystick_cmd_vel", 1, callbackJoystickInput);
     ros::Subscriber sub4 = n.subscribe("attractive_points", 1, callbackattractivePoints);
@@ -821,7 +822,8 @@ int main(int argc, char **argv)
     printf("  rate: %.1f\n",fps);
     printf("  obstacleNearnessEnabled: %s\n",obstacleNearnessEnabled?"true":"false");
     printf("  obstacleNearnessDistance: %.2f\n",obstacleNearnessDistance);
-
+    printf("  GUI: %s\n",(GUI?"true":"false"));
+    printf("  enabled: %s\n",(gbnEnabled?"true":"false"));
 
     if (GUI) {
         // OpenCV stuff
@@ -842,8 +844,8 @@ int main(int argc, char **argv)
     cv::Vec3f forza;
     cv::Vec3f momento;
 
-    ROS_INFO("gradient_based_navigation: waiting for laser scan...");
-    while (!laser_ready) {
+    ROS_INFO_STREAM("gradient_based_navigation: waiting for laser scan on topic " << scan_topic << " ...");
+    while (!laser_ready && ros::ok()) {
       loop_rate.sleep();
     }
     ROS_INFO("gradient_based_navigation: laser scan OK");
