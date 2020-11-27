@@ -35,8 +35,8 @@ cv::Mat visual_joy1(h/2,w/2,CV_8U);
 cv::Mat visual_joy2(h/2,w/2,CV_8U);
 
 double resolution=.05;
-double max_vel_x;
-double max_vel_theta;
+double max_vel_x=0.25;
+double max_vel_theta=0.75;
 
 double range_scan_min=0.001;
 double range_scan_max=30;
@@ -127,6 +127,11 @@ void parseCmdLine(int argc, char** argv){
     pixel_robot=(grandezza_robot/resolution)*(grandezza_robot/resolution);
     sizematforze=round(grandezza_robot/resolution);
     matriceForze=cv::Mat(sizematforze,sizematforze,CV_32FC3);
+}
+
+void get_max_vel() {
+    private_nh_ptr->getParam("max_vel_x", max_vel_x);
+    private_nh_ptr->getParam("max_vel_theta", max_vel_theta);
 }
 
 float getattractiveDistanceThreshold(){
@@ -789,9 +794,7 @@ int main(int argc, char **argv)
     // ROS parameters
 
     // max vel parameters
-
-    private_nh.param("max_vel_x", max_vel_x, 1.0);
-    private_nh.param("max_vel_theta", max_vel_theta, 1.0);
+    get_max_vel();   // also read in main loop
 
     // Update rate
     double fps=25.0; // Hz
@@ -800,7 +803,7 @@ int main(int argc, char **argv)
     // GUI parameter
     private_nh.param("GUI", GUI, false);
 
-    // parametri ROS - letti nel ciclo
+    // ROS parameters - also read in main loop
     double par;
     private_nh_ptr->getParam("attractiveDistanceInfluence_m",par);
     distanza_saturazione_attr_cm=(int)(par*100);
@@ -883,6 +886,7 @@ int main(int argc, char **argv)
         /*** read ros params every fps iterations (1 second) *******************/
         if (iter==0){
             private_nh_ptr->getParam("GUI", GUI);
+            get_max_vel();
             n_pixel_sat_attr=getNumPixelSaturazioneattrazione();
             n_pixel_sat=getNumPixelSaturazione();
             force_scale=getRepulsiveForceScale();
