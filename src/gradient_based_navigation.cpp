@@ -38,8 +38,10 @@ double resolution=.05;
 double max_vel_x=0.25;
 double max_vel_theta=0.75;
 
-double range_scan_min=0.001;
-double range_scan_max=30;
+// user-defined scan limits to filter out values outside range
+// TODO add them as node parameters
+double range_scan_min=0.1;
+double range_scan_max=6;
 
 int size=0;
 float angle_min=0;
@@ -234,8 +236,8 @@ void callbackSensore(const sensor_msgs::LaserScan::ConstPtr& msg)
     angle_min=msg->angle_min;
     angle_incr=msg->angle_increment;
     time_stamp=msg->header.stamp;
-    range_scan_min=msg->range_min;
-    range_scan_max=msg->range_max;
+    //range_scan_min=msg->range_min; // use user-defined limits to filter out values outside range
+    //range_scan_max=msg->range_max;
     ranges=msg->ranges;
     last_laser_msg_time = time_stamp; //ros::Time::now();
     very_close_obstacle_check();
