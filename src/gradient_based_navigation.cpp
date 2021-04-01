@@ -39,9 +39,10 @@ double max_vel_x=0.25;
 double max_vel_theta=0.75;
 
 // user-defined scan limits to filter out values outside range
-// TODO add them as node parameters
-double range_scan_min=0.1;
+double range_scan_min=0.25;
 double range_scan_max=6;
+double angle_scan_min=-M_PI/2+M_PI/8;
+double angle_scan_max=M_PI/2-M_PI/8;
 
 int size=0;
 float angle_min=0;
@@ -183,6 +184,18 @@ float getobstacleNearnessDistance(){
     return par;
 }
 
+float getMinScanRange(){
+    float par;
+    private_nh_ptr->getParam("minScanRange",par);
+    return par;
+}
+
+float getMaxScanRange(){
+    float par;
+    private_nh_ptr->getParam("maxScanRange",par);
+    return par;
+}
+
 bool getgbnEnabled() {
     bool par;
     private_nh_ptr->getParam("gbnEnabled",par);
@@ -236,8 +249,6 @@ void callbackSensore(const sensor_msgs::LaserScan::ConstPtr& msg)
     angle_min=msg->angle_min;
     angle_incr=msg->angle_increment;
     time_stamp=msg->header.stamp;
-    //range_scan_min=msg->range_min; // use user-defined limits to filter out values outside range
-    //range_scan_max=msg->range_max;
     ranges=msg->ranges;
     last_laser_msg_time = time_stamp; //ros::Time::now();
     very_close_obstacle_check();
@@ -388,10 +399,13 @@ void costruisciScanImage(){
     cv::Point newp;
     
     for(int i = 0; i < size; i++){
-        
-        if(ranges[i]>range_scan_min&&ranges[i]<range_scan_max){
-            posx=ranges[i]*cos(angle_min+((float)(i)*angle_incr));
-            posy=ranges[i]*sin(angle_min+((float)(i)*angle_incr));
+
+        double ang = angle_min+((float)(i)*angle_incr);
+
+        if (ranges[i]>range_scan_min && ranges[i]<range_scan_max &&
+            ang>angle_scan_min && ang<angle_scan_max ) {
+            posx=ranges[i]*cos(ang);
+            posy=ranges[i]*sin(ang);
             indy=-((posy/resolution)-h/2);
             indx=(-(posx/resolution)+w/2);
 
@@ -403,7 +417,7 @@ void costruisciScanImage(){
                 }
             }
             oldp=newp;
-        }else{
+        } else {
             oldp.x=-1; oldp.y=-1;
         }
     }
@@ -782,6 +796,9 @@ int main(int argc, char **argv)
     if (!private_nh_ptr->hasParam("gbnEnabled"))
       private_nh_ptr->setParam("gbnEnabled",gbnEnabled);
 
+range_scan_min=getMinScanRange();
+range_scan_max=getMaxScanRange();
+
 
     // Reconfigure settings
 
@@ -817,6 +834,8 @@ int main(int argc, char **argv)
     momentum_scale_tb=(int)(par*1000);
     obstacleNearnessEnabled=getobstacleNearnessEnabled();
     obstacleNearnessDistance=getobstacleNearnessDistance();
+    range_scan_min=getMinScanRange();
+    range_scan_max=getMaxScanRange();
 
     printf("gradient_based_navigation parameters\n");
     printf("  obstaclesDistanceInfluence_m: %.1f (m)\n",(double)distanza_saturazione_cm/100.0);
@@ -826,7 +845,8 @@ int main(int argc, char **argv)
     printf("  max_vel_theta: %.1f\n",max_vel_theta);
     printf("  rate: %.1f\n",fps);
     printf("  obstacleNearnessEnabled: %s\n",obstacleNearnessEnabled?"true":"false");
-    printf("  obstacleNearnessDistance: %.2f\n",obstacleNearnessDistance);
+    printf("  minScanRange: %.2f\n",range_scan_min);
+    printf("  maxScanRange: %.2f\n",range_scan_max);
     printf("  GUI: %s\n",(GUI?"true":"false"));
     printf("  enabled: %s\n",(gbnEnabled?"true":"false"));
 
@@ -896,6 +916,8 @@ int main(int argc, char **argv)
             attr_dist_thresh=getattractiveDistanceThreshold();
             obstacleNearnessEnabled=getobstacleNearnessEnabled();
             obstacleNearnessDistance=getobstacleNearnessDistance();
+            range_scan_min=getMinScanRange();
+            range_scan_max=getMaxScanRange();
             gbnEnabled=getgbnEnabled();
         }
         iter++;
