@@ -901,7 +901,8 @@ range_scan_max=getMaxScanRange();
     ros::Duration delay(3.0); // seconds
     delay.sleep();
     
-    int iter=0;
+    int iter=0; // counter to read params
+    int zerovel=0; // counter to stop sending 0 velocities
 
     while (ros::ok()) { 
 
@@ -1108,7 +1109,13 @@ range_scan_max=getMaxScanRange();
         last_cmdvel_x = command_vel.linear.x;  // last cmdvel messages sent
         last_cmdvel_th = command_vel.angular.z;
 
-        pub.publish(command_vel);
+        if (fabs(command_vel.linear.x)>0.01 || fabs(command_vel.angular.z)>0.01) 
+            zerovel=0;
+        else
+            zerovel++;
+
+        if (zerovel<fps)  // publish only first fps 0,0 velocities
+            pub.publish(command_vel);
         /********************************************************************************/
 
         
